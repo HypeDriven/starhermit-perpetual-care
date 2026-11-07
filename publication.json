@@ -22,12 +22,12 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-07T11:32:50.009362+00:00",
+      "deployedAt": "2026-11-07T12:26:04.431822+00:00",
       "externalLaunchUrl": null,
       "engineVersion": "1.38.0",
       "deployWarning": null
     },
-    "description": "Build, furnish and run your own hospital. Draw rooms, place equipment, hire a team and turn improbable ailments into happy discharges.",
+    "description": "Build and run your own hospital. Furnish rooms, develop staff, research better care, meet patient needs and take on emergency referrals on the way to three stars.",
     "releaseNotesUpdatedAt": null,
     "serverRuntime": null,
     "bannerArtSource": null,
@@ -36,27 +36,27 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-07T11:32:50.096Z",
-  "sourceCommit": "81f8da4c7e3d86329e7ad5c078f8d40e0a5cb7b0",
-  "bytesReceived": 4449904,
-  "archiveSha256": "41c87bb00bf470653d45c39f98ae6ca439fee356d47ca298e01a1b82c1871d5b",
+  "publishedAt": "2026-11-07T12:26:04.517Z",
+  "sourceCommit": "b20d9c0cdc896764e411f8f8fb552c5fe724d0c9",
+  "bytesReceived": 4463276,
+  "archiveSha256": "333f7ac29c7fa499dfd53152b5a7342b3ebc81a48296d8d6ead6ed05e3c4810e",
   "result": {
     "clientPublished": true,
     "serverImageLoaded": false,
     "imageDigest": null,
-    "bytesReceived": 4449904,
+    "bytesReceived": 4463276,
     "mode": "replace",
     "filesRemoved": 0,
     "engineVersion": "1.38.0",
     "deployWarning": null
   },
   "validation": {
-    "modelTests": 10,
-    "engineCheck": "Package links four modules and passes 120 headless frames.",
-    "native": "Desktop construction, furnishing, hiring and treatment playthrough passes at quantum, molecular and infinite; touch construction passes at cellular.",
-    "browser": "Desktop and phone construction playthroughs and durable save/restore pass without page errors or warnings. Normal browser Options exposes graphics quality. Public desktop and phone startup verified.",
-    "liveAssets": "File index, manifest, redesigned main/model/render modules, generated GLB and YuE soundtrack match local bytes.",
-    "assets": "Six original FLUX.2 Klein to TRELLIS models; original 65-second local YuE2 instrumental soundtrack; generated interface and cure cues."
+    "modelTests": 24,
+    "engineCheck": "Seven modules link; package passes 120 native headless frames with no warnings.",
+    "native": "4,178-frame management playthrough passed at quantum and infinite; molecular management and cellular touch flows also passed.",
+    "browser": "Desktop research, staff training, room refits, policies and contract playthrough passed. Phone management controls and durable research/staff-pay restoration passed.",
+    "saveCompatibility": "Version 2.0 hospitals migrate in place without losing finances, rooms, staff or patients; expanded research and staff state survive browser reload.",
+    "live": "Published source modules and manifest match local bytes. Public desktop and phone load with no console errors or warnings."
   },
-  "version": "2.0.0"
+  "version": "2.1.0"
 }
