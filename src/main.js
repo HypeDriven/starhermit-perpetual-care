@@ -10,7 +10,7 @@ import {drawManagement} from './management-ui.js';
 const C={paper:'#f4f2e9',white:'#fffef7',ink:'#294a3c',muted:'#829080',line:'#dce0d1',green:'#47765b',sage:'#e3e9d8',orange:'#bc7e59',red:'#ad5c4b',dark:'#294b3d',yellow:'#e7d8b3'};
 let s=M.fresh(),paused=true,speed=1,tab='rooms',tool={kind:'room',type:'gp'},selected=null,anchor=null,pending=null,hoverTile=null,rotation=0;
 let buttons=[],panelRect=null,U=1,W=1440,H=900,mobile=false,scroll=0,maxScroll=0,toast='',toastTimer=0,modal=null,saveTimer=0,clock=0,wallMode=1,roomFilter=null;
-let dragUI=false,pinchZoom=1,lastCured=0;
+let dragUI=false,pinchZoom=1,lastCured=0,showFlow=false;
 let managementTab='policies',managementScroll=0,managementMax=0,managementBody=null;
 let knownResearch=0,knownContracts=0,knownFailures=0,knownRating=0;
 const SAVE='perpetual-care-hospital-v2';
@@ -27,8 +27,13 @@ function selectedRoom(){return selected?.kind==='room'?s.rooms.find(r=>r.id===se
 function manage(section='policies'){cancel();modal='manage';managementTab=section;managementScroll=0;}
 function reset(){s=M.fresh();paused=true;modal=null;selected=null;roomFilter=null;tab='rooms';tool={kind:'room',type:'gp'};anchor=null;pending=null;scroll=0;view.setCamera({x:14,z:11,zoom:1,rotation:0});save();notice('A new lease. A clean floor. Your hospital.');}
 function bounds(a,b){return {x:Math.min(a.x,b.x),z:Math.min(a.z,b.z),w:Math.abs(a.x-b.x)+1,h:Math.abs(a.z-b.z)+1};}
+function arrange(id){modal=null;selected={kind:'room',id};tool={kind:'arrange'};tab='inspect';notice('Choose a furnishing, then its new position. R rotates it.');}
+function expand(id){const r=s.rooms.find(r=>r.id===id);modal=null;selected={kind:'room',id};tool={kind:'expand',id,type:r.type};pending=null;anchor=null;notice('Draw a larger rectangle containing the whole room.');}
+function pickUp(i){tool={kind:'move',id:i.id,type:i.type};rotation=i.rotation;notice('Choose the new position. Moving is free; Cancel keeps the original.');}
 function commitRoom(){
- if(!pending)return;const b=pending,r=M.buildRoom(s,tool.type,b.x,b.z,b.w,b.h);
+ if(!pending)return;const b=pending;
+ if(tool.kind==='expand'){if(result(M.expandRoom(s,tool.id,b.x,b.z,b.w,b.h),'Room expanded. Furnishings and staff retained.')){cancel();tab='inspect';}return;}
+ const r=M.buildRoom(s,tool.type,b.x,b.z,b.w,b.h);
  if(result(r)){selected={kind:'room',id:r.room.id};roomFilter=r.room.type;tab='equipment';tool={kind:'item',type:M.ROOM_TYPES[r.room.type].required[0]};anchor=null;pending=null;scroll=0;notice('Room built. Now place the required equipment inside.');}
 }
 function hitUI(x,y){return modal||panelRect&&x>=panelRect.x&&x<=panelRect.x+panelRect.w&&y>=panelRect.y&&y<=panelRect.y+panelRect.h||y<(mobile?132:110)||y>H-64||pending&&y>H-144;}
@@ -37,7 +42,7 @@ function press(x,y){
  for(let i=buttons.length-1;i>=0;i--){const b=buttons[i];if(px>=b.x&&px<=b.x+b.w&&py>=b.y&&py<=b.y+b.h){if(!b.disabled){sound.cue('click');b.fn();}return;}}
  if(hitUI(px,py))return;
  const p=view.pick(x,y);if(!p)return;
- if(tool.kind==='room'){
+ if(['room','expand'].includes(tool.kind)){
   if(pending)return;
   if(!anchor){anchor=p;notice('Choose the opposite corner.');}
   else{pending=bounds(anchor,p);anchor=null;}return;
@@ -48,6 +53,8 @@ function press(x,y){
    const room=s.rooms.find(rr=>rr.id===r.item.room);if(room){selected={kind:'room',id:room.id};const missing=M.roomStatus(s,room).missing;if(missing.length)tool={kind:'item',type:missing[0]};else{tool={kind:'select'};notice(M.roomStatus(s,room).label==='Open'?'Room ready.':M.roomStatus(s,room).label+'.');}}
   }return;
  }
+ if(tool.kind==='arrange'){const i=M.itemAt(s,p.x,p.z);if(i)pickUp(i);else notice('Choose an existing furnishing to move.');return;}
+ if(tool.kind==='move'){if(result(M.moveItem(s,tool.id,p.x,p.z,rotation),'Furnishing moved.')){tool={kind:'arrange'};}return;}
  if(tool.kind==='door'){
   if(result(M.moveDoor(s,selected.id,p.x,p.z),'Door relocated.'))tool={kind:'select'};return;
  }
@@ -64,12 +71,12 @@ function press(x,y){
 onGesture(e=>{
  const x=e.x/U,y=e.y/U;
  if(e.type==='tap')press(e.x,e.y);
- if(e.type==='dragStart'){dragUI=!!hitUI(e.startX/U,e.startY/U);if(!dragUI&&tool.kind==='room'&&!pending)anchor=view.pick(e.startX,e.startY);}
+ if(e.type==='dragStart'){dragUI=!!hitUI(e.startX/U,e.startY/U);if(!dragUI&&['room','expand'].includes(tool.kind)&&!pending)anchor=view.pick(e.startX,e.startY);}
  if(e.type==='drag'){
   if(dragUI){if(modal==='manage'&&managementBody&&e.startY/U>=managementBody.y)managementScroll=Math.max(0,Math.min(managementMax,managementScroll-e.dy/U));else if(!modal&&panelRect&&e.startY/U>panelRect.y+80)scroll=Math.max(0,Math.min(maxScroll,scroll-e.dy/U));}
-  else if(tool.kind!=='room'){view.pan(-e.dx/(22*U),-e.dy/(18*U));}
+  else if(!['room','expand'].includes(tool.kind)){view.pan(-e.dx/(22*U),-e.dy/(18*U));}
  }
- if(e.type==='dragEnd'&&!dragUI&&tool.kind==='room'&&anchor){const p=view.pick(e.x,e.y);if(p&&!e.cancelled)pending=bounds(anchor,p);anchor=null;}
+ if(e.type==='dragEnd'&&!dragUI&&['room','expand'].includes(tool.kind)&&anchor){const p=view.pick(e.x,e.y);if(p&&!e.cancelled)pending=bounds(anchor,p);anchor=null;}
  if(e.type==='pinchStart')pinchZoom=view.cameraState().zoom;
  if(e.type==='pinch')view.setCamera({zoom:pinchZoom*e.scale});
 });
@@ -86,8 +93,9 @@ onAction(e=>{
  if(e.action==='equipment'){selectTab('equipment');roomFilter=null;}
  if(e.action==='hire')selectTab('staff');
  if(e.action==='inspect'){cancel();tab='inspect';}
- if(e.action==='rotate'){if(tool.kind==='item')rotation=(rotation+1)%4;else view.setCamera({rotation:view.cameraState().rotation+1});}
+ if(e.action==='rotate'){if(['item','move'].includes(tool.kind))rotation=(rotation+1)%4;else view.setCamera({rotation:view.cameraState().rotation+1});}
  if(e.action==='rotate_view')view.setCamera({rotation:view.cameraState().rotation-1});
+ if(e.action==='flow')showFlow=!showFlow;
  if(e.action==='walls'){wallMode=(wallMode+1)%3;view.setWalls(wallMode);}
  if(e.action==='help')modal='help';
  if(e.action==='save'){save();notice('Hospital saved.');}
@@ -201,13 +209,14 @@ function inspectPanel(x,y,w,bottom){
   const p=s.patients.find(p=>p.id===selected.id);if(!p){selected=null;return;}text(p.name,x,y,21,C.ink,500,'serif');text(p.diagnosed?M.CONDITIONS[p.condition].name:'Awaiting diagnosis',x,y+29,12,C.orange);
   text(p.amenity?(p.amenity.kind==='drink'?'Getting a drink':'Visiting the toilets'):p.state==='service'?'Receiving treatment':'Next: '+(M.ROOM_TYPES[p.stage]?.name||'Reception'),x,y+51,11,C.ink);
   text((p.urgency>=4?'URGENT · ':'')+'Diagnosis '+Math.round(p.confidence*100)+'% · '+Math.floor(s.time-p.arrived)+'s on site',x,y+72,10,p.urgency>=4?C.red:C.muted);
-  label('VITALITY '+Math.round(p.health)+'%',x,y+96);bar(x,y+113,w,p.health/100);label('PATIENCE '+Math.round(p.patience)+'%',x,y+129);bar(x,y+146,w,p.patience/100,p.patience<30?C.orange:C.green);
-  text('Thirst '+Math.round(p.thirst)+'% · Toilet need '+Math.round(p.bladder)+'%',x,y+158,10,p.thirst>80||p.bladder>80?C.orange:C.muted);
-  if(y+207<bottom)button('Send home · −3 reputation',x,y+179,w,28,()=>{result(M.sendHome(s,p.id),'Patient sent home.');selected=null;});
+  label('VITALITY '+Math.round(p.health)+'%',x,y+84);bar(x,y+101,w,p.health/100);label('PATIENCE '+Math.round(p.patience)+'%',x,y+116);bar(x,y+132,w,p.patience/100,p.patience<30?C.orange:C.green);
+  text('Thirst '+Math.round(p.thirst)+'% · Toilet need '+Math.round(p.bladder)+'%',x,y+143,10,p.thirst>80||p.bladder>80?C.orange:C.muted);
+  if(y+175<bottom)text(p.diagnosed?'Care: '+M.carePlan(p).map((t,i)=>(i<(p.careStep||0)?'✓ ':'')+M.ROOM_TYPES[t].short).join(' → '):'A diagnosis will reveal the treatment plan.',x,y+158,10,C.green);
+  if(y+202<bottom)button('Send home · −3 reputation',x,y+173,w,28,()=>{result(M.sendHome(s,p.id),'Patient sent home.');selected=null;});
  }else if(selected?.kind==='staff'){
-  const a=s.staff.find(a=>a.id===selected.id);if(!a){selected=null;return;}text(a.name,x,y,22,C.ink,500,'serif');text(M.STAFF_TYPES[a.type].name+' · '+M.money(M.wage(a))+'/day',x,y+34,12,C.muted);label('ENERGY',x,y+65);bar(x,y+83,w,a.energy/100);label('MORALE '+Math.round(a.morale)+'% · '+M.TRAITS[a.trait].name,x,y+102);const r=s.rooms.find(r=>r.id===a.room);wrap(a.training?'In training · '+Math.ceil(a.training.remaining)+'s':a.resting?'Taking a well-earned break':r?'Assigned to '+M.ROOM_TYPES[r.type].name:'Waiting for a matching room',x,y+126,w,12);if(y+204<bottom)button('Training, pay & assignments',x,y+169,w,31,()=>manage('people'));
+  const a=s.staff.find(a=>a.id===selected.id);if(!a){selected=null;return;}text(a.name,x,y,22,C.ink,500,'serif');text(M.STAFF_TYPES[a.type].name+' · '+M.money(M.wage(a))+'/day',x,y+34,12,C.muted);label('ENERGY',x,y+65);bar(x,y+83,w,a.energy/100);label('MORALE '+Math.round(a.morale)+'% · '+M.TRAITS[a.trait].name,x,y+102);const r=s.rooms.find(r=>r.id===(a.room||a.covering));wrap(a.training?'In training · '+Math.ceil(a.training.remaining)+'s':a.resting?'Taking a well-earned break':r?'Assigned to '+M.ROOM_TYPES[r.type].name:'Waiting for a matching room',x,y+126,w,12);if(y+204<bottom)button('Training, pay & assignments',x,y+169,w,31,()=>manage('people'));
  }else if(selected?.kind==='item'){
-  const i=s.items.find(i=>i.id===selected.id);if(!i){selected=null;return;}const e=M.EQUIPMENT[i.type];text(e.name,x,y,21,C.ink,500,'serif');wrap(e.description,x,y+37,w,13);button('Sell for '+M.money(e.cost*.5),x,y+112,w,34,()=>{result(M.removeItem(s,i.id),'Object sold.');selected=null;});
+  const i=s.items.find(i=>i.id===selected.id);if(!i){selected=null;return;}const e=M.EQUIPMENT[i.type];text(e.name,x,y,21,C.ink,500,'serif');wrap(e.description,x,y+37,w,13);button('Move furnishing',x,y+76,w,29,()=>pickUp(i));button('Sell for '+M.money(e.cost*.5),x,y+112,w,34,()=>{result(M.removeItem(s,i.id),'Object sold.');selected=null;});
  }else{
   text('Every detail counts.',x,y,22,C.ink,500,'serif');wrap('Click a room, a patient, a member of staff, or a corridor furnishing to inspect it.',x,y+43,w,13);button('Build a room',x,y+131,w,36,()=>selectTab('rooms'),'primary');
  }
@@ -226,31 +235,32 @@ function hospitalPanel(x,y,w,bottom,minY){
 }
 function constructionHUD(){
  let b=null,check=null;
- if(tool.kind==='room'){
+ if(['room','expand'].includes(tool.kind)){
   if(pending)b=pending;else if(anchor&&hoverTile)b=bounds(anchor,hoverTile);else if(hoverTile){const t=M.ROOM_TYPES[tool.type];b={x:hoverTile.x,z:hoverTile.z,w:t.min,h:t.min};}
-  if(b)check=M.canBuild(s,tool.type,b.x,b.z,b.w,b.h);
- }else if(tool.kind==='item'&&hoverTile){const f=M.footprint(tool.type,rotation);b={x:hoverTile.x,z:hoverTile.z,...f};check=M.canPlace(s,tool.type,b.x,b.z,rotation);}
+  if(b)check=tool.kind==='expand'?M.canExpandRoom(s,tool.id,b.x,b.z,b.w,b.h):M.canBuild(s,tool.type,b.x,b.z,b.w,b.h);
+ }else if(['item','move'].includes(tool.kind)&&hoverTile){const f=M.footprint(tool.type,rotation);b={x:hoverTile.x,z:hoverTile.z,...f};check=tool.kind==='move'?M.canMoveItem(s,tool.id,b.x,b.z,rotation):M.canPlace(s,tool.type,b.x,b.z,rotation);}
  view.preview(b?{...b,ok:check.ok}:null);
  const viewX=mobile?20:318,viewW=W-viewX-20;
  if(pending){
   const yy=mobile?panelRect.y-88:H-142;rect(viewX,yy,viewW,70,C.paper,9);text(pending.w+' × '+pending.h+' '+M.ROOM_TYPES[tool.type].name,viewX+15,yy+12,16,C.ink,500,'serif');
-  if(check.ok){text('Door and walls included.',viewX+15,yy+40,11,C.muted);button('Build room '+M.money(check.cost),viewX+viewW-236,yy+17,175,37,commitRoom,'primary');}
+  if(check.ok){text(tool.kind==='expand'?'Equipment and staff retained.':'Door and walls included.',viewX+15,yy+40,11,C.muted);button((tool.kind==='expand'?'Expand ':'Build room ')+M.money(check.cost),viewX+viewW-236,yy+17,175,37,commitRoom,'primary');}
   else wrap(check.error,viewX+15,yy+37,viewW-80,11,C.red);
   button('×',viewX+viewW-48,yy+17,33,37,()=>{pending=null;anchor=null;});
  }else{
   const titles={room:'DRAW YOUR HOSPITAL',item:'A PLACE FOR EVERYTHING',door:'RELOCATE THE DOOR',sell:'MAKE ROOM FOR SOMETHING BETTER',select:'YOUR HOSPITAL, IN THE MAKING'};
-  const detail=tool.kind==='room'?M.ROOM_TYPES[tool.type].name+' · Drag to build, or tap two corners':tool.kind==='item'?M.EQUIPMENT[tool.type].name+' · '+M.money(M.EQUIPMENT[tool.type].cost)+' · R to rotate':tool.kind==='door'?'Click a wall tile beside a corridor':tool.kind==='sell'?'Click to sell. Rooms require confirmation.':s.rooms.length?'Click a room or a person to inspect them.':'Begin with a GP office. Leave the green central corridor clear.';
+  const detail=tool.kind==='expand'?'Draw a larger rectangle around the existing room':tool.kind==='arrange'?'Choose a furnishing to move':tool.kind==='move'?'Place furnishing · R to rotate · Cancel keeps original':tool.kind==='room'?M.ROOM_TYPES[tool.type].name+' · Drag to build, or tap two corners':tool.kind==='item'?M.EQUIPMENT[tool.type].name+' · '+M.money(M.EQUIPMENT[tool.type].cost)+' · R to rotate':tool.kind==='door'?'Click a wall tile beside a corridor':tool.kind==='sell'?'Click to sell. Rooms require confirmation.':s.rooms.length?'Click a room or a person to inspect them.':'Begin with a GP office. Leave the green central corridor clear.';
   if(!mobile){label(titles[tool.kind]||titles.select,viewX+5,127);text(detail,viewX+5,148,12,C.ink);}
   if(b&&check&&!check.ok&&!mobile){const yy=H-99;rect(viewX,yy,Math.min(viewW,600),27,'#f9f0df',5);text(check.error,viewX+10,yy+7,11,C.orange);}
  }
  // These controls are always reachable without a keyboard.
  const cx=W-(mobile?194:225),cy=mobile?143:121;
  button('−',cx,cy,30,30,()=>view.setCamera({zoom:view.cameraState().zoom/1.15}));button('+',cx+35,cy,30,30,()=>view.setCamera({zoom:view.cameraState().zoom*1.15}));
- button('↻',cx+70,cy,34,30,()=>{if(tool.kind==='item')rotation=(rotation+1)%4;else view.setCamera({rotation:view.cameraState().rotation+1});});
+ button('↻',cx+70,cy,34,30,()=>{if(['item','move'].includes(tool.kind))rotation=(rotation+1)%4;else view.setCamera({rotation:view.cameraState().rotation+1});});
  button(['Walls off','Cutaway','Full walls'][wallMode],cx+109,cy,mobile?73:98,30,()=>{wallMode=(wallMode+1)%3;view.setWalls(wallMode);});
- if(mobile&&s.contract)pill('CONTRACT '+M.contractProgress(s)+'/'+s.contract.target+' · '+Math.max(0,Math.ceil(s.contract.deadline-s.time))+'s',20,143,W-226,C.yellow);
- else if(mobile&&s.research.active)pill('RESEARCH '+Math.floor(s.research.active.progress/M.RESEARCH[s.research.active.id].work*100)+'%',20,143,W-226,C.sage);
- if(!mobile){button('Select',viewX+5,H-101,65,29,()=>{cancel();tab='inspect';});button('Sell',viewX+77,H-101,55,29,()=>{tool={kind:'sell'};pending=null;anchor=null;});}
+ if(mobile&&s.contract&&!showFlow)pill('CONTRACT '+M.contractProgress(s)+'/'+s.contract.target+' · '+Math.max(0,Math.ceil(s.contract.deadline-s.time))+'s',20,143,W-226,C.yellow);
+ else if(mobile&&s.research.active&&!showFlow)pill('RESEARCH '+Math.floor(s.research.active.progress/M.RESEARCH[s.research.active.id].work*100)+'%',20,143,W-226,C.sage);
+ if(!mobile){button('Select',viewX+5,H-101,65,29,()=>{cancel();tab='inspect';});button('Sell',viewX+77,H-101,55,29,()=>{tool={kind:'sell'};pending=null;anchor=null;});button('Arrange',viewX+139,H-101,82,29,()=>{cancel();tool={kind:'arrange'};});}
+ button(showFlow?'Flow on':'Flow',mobile?20:cx-77,mobile?182:cy,70,30,()=>{showFlow=!showFlow;},showFlow?'selected':'plain');
  if(tool.kind!=='select'&&!pending)button('Cancel',W-87,mobile?182:H-101,67,29,cancel);
  if(mobile&&selectedRoom()&&!pending){const yy=panelRect.y-77;button('Furnish room',20,yy,139,31,()=>{tab='equipment';roomFilter=selectedRoom().type;scroll=0;});button('Move door',167,yy,108,31,()=>{tool={kind:'door'};notice('Choose a wall tile beside the corridor.');});button('Demolish',283,yy,104,31,()=>{modal='demolish';});}
 }
@@ -259,7 +269,8 @@ function worldLabels(){
   const corners=[[r.x,r.z],[r.x+r.w,r.z],[r.x,r.z+r.h],[r.x+r.w,r.z+r.h]].map(([x,z])=>view.project(x,.1,z));
   const p=corners.sort((a,b)=>b.y-a.y)[0];p.x/=U;p.y=p.y/U+24;if(p.x<(mobile?0:310)||p.x>W-25||p.y<(mobile?180:175)||p.y>(mobile?panelRect?.y-25:H-114))continue;
   const status=M.roomStatus(s,r),q=s.patients.filter(a=>a.room===r.id&&a.state==='queue').length,t=M.ROOM_TYPES[r.type],w=mobile?70:100;
-  rect(p.x-w/2,p.y-17,w,31,status.ready?'#fbfcf0ed':'#f8eddaed',6);text(t.short+(r.level?' '+('I'.repeat(r.level+1)):'')+(q?' · '+q+' waiting':''),p.x,p.y-10,11,status.ready?C.green:C.orange,700,'sans-serif','center');text(r.upgrading>0?'REFITTING':r.closed?'INTAKE PAUSED':status.ready?'OPEN':status.label.includes('training')?'TRAINING':'FITTING OUT',p.x,p.y+4,7,C.muted,600,'sans-serif','center');
+  rect(p.x-w/2,p.y-17,w,showFlow?46:31,status.ready?'#fbfcf0ed':'#f8eddaed',6);text(t.short+(r.level?' '+('I'.repeat(r.level+1)):'')+(q?' · '+q+' waiting':''),p.x,p.y-10,11,status.ready?C.green:C.orange,700,'sans-serif','center');text(r.upgrading>0?'REFITTING':r.closed?'INTAKE PAUSED':status.ready&&!status.intake?'AWAITING STOCK':status.ready?'OPEN':status.label.includes('training')?'TRAINING':'FITTING OUT',p.x,p.y+4,7,C.muted,600,'sans-serif','center');
+  if(showFlow&&t.time){const m=M.roomMetrics(s,r);text(Math.round(m.utilisation)+'% busy · ~'+m.estimatedWait+'s wait',p.x,p.y+16,8,C.green,500,'sans-serif','center');}
  }
  const p=view.project(14.6,1.35,18.5);if(p.x/U>(mobile?0:310)&&p.y/U<(mobile?H-390:H-120)){pill('RECEPTION',p.x/U-46,p.y/U-25,92,'#faf7e9df');}
  if(selected?.kind==='patient'){const a=s.patients.find(a=>a.id===selected.id);if(a){const p=view.project(a.x,1.35,a.z);pill(a.name,p.x/U-60,p.y/U-27,120,C.white);}}
@@ -272,7 +283,7 @@ function modalUI(){
  if(!modal&&!s.ended)return;rect(0,0,W,H,'#203b32a0');buttons=[];
  if(modal==='manage'){
   const w=Math.min(W-24,900),h=Math.min(H-48,700),x=(W-w)/2,y=(H-h)/2;
-  const layout=drawManagement({s,x,y,w,h,section:managementTab,scroll:managementScroll,selected,result,ui:{rect,text,label,wrap,button,bar,C},onTab:t=>{managementTab=t;managementScroll=0;},onClose:()=>{modal=null;},onBuild:()=>{modal=null;chooseRoom('research');},onInspect:id=>{modal=null;selected={kind:'room',id};tab='inspect';scroll=0;}});
+  const layout=drawManagement({s,x,y,w,h,section:managementTab,scroll:managementScroll,selected,result,ui:{rect,text,label,wrap,button,bar,C},onTab:t=>{managementTab=t;managementScroll=0;},onClose:()=>{modal=null;},onBuild:(type='research')=>{modal=null;chooseRoom(type);},onExpand:expand,onArrange:arrange,onInspect:id=>{modal=null;selected={kind:'room',id};tab='inspect';scroll=0;}});
   managementMax=layout.max;managementBody=layout.body;managementScroll=Math.min(managementScroll,managementMax);
   if(toastTimer>0){rect(x+17,y+h-88,w-34,27,C.dark,5);text(toast,x+28,y+h-80,mobile?10:11,'#fff8e6');}
   return;
@@ -280,7 +291,7 @@ function modalUI(){
  const w=Math.min(W-32,650),x=(W-w)/2,h=modal==='help'?Math.min(H-60,610):260,y=(H-h)/2;rect(x,y,w,h,C.paper,13);
  if(modal==='help'){
   label('WELCOME TO PERPETUAL CARE',x+26,y+26);text('Build a hospital. Make it work.',x+26,y+57,mobile?24:32,C.ink,500,'serif');
-  const instructions=[['1. Draw a room','Choose Rooms, then drag a rectangle on the floor. You can also tap two opposite corners. Confirm the cost.'],['2. Make room for care','Place the required equipment inside. Doors need a clear path. R rotates furniture; the curved arrow works on touch.'],['3. Hire the right people','Doctors diagnose. Nurses run pharmacies and wards. Specialists run advanced rooms. Assignments are automatic.'],['4. Open your doors','Patients check in, queue for a GP, then seek the treatment their condition needs. Build a pharmacy AND a ward for the first arrivals.'],['5. Keep everyone going','Add benches, plants, toilets and a staff room. Caretakers repair equipment. Cure 6 patients to unlock Diagnostics; 16 unlocks Surgery.']];
+  const instructions=[['1. Draw a room','Choose Rooms, then drag a rectangle on the floor. You can also tap two opposite corners. Confirm the cost.'],['2. Make room for care','Place the required equipment inside. Doors need a clear path. R rotates furniture; the curved arrow works on touch.'],['3. Hire the right people','Doctors diagnose. Nurses run pharmacies and wards. Specialists run advanced rooms. Assignments are automatic.'],['4. Open your doors','Patients check in, queue for a GP, then seek the treatment their condition needs. Build a pharmacy AND a ward for the first arrivals.'],['5. Keep everyone going','Add toilets and a staff room, hire a caretaker and keep supplies stocked. Manage handles research, training and contracts.']];
   let yy=y+112;for(const[a,b]of instructions){text(a,x+26,yy,14,C.green,600);yy+=23;yy+=wrap(b,x+26,yy,w-52,mobile?11:12,C.muted,mobile?16:18)+16;}
   if(!mobile)text('M management · Space pause · B rooms · E equipment · H hire · WASD pan · Q / R rotate',x+26,y+h-83,10,C.muted);
   button('Let’s build something good',x+26,y+h-57,w-52,36,()=>{modal=null;},'primary');
@@ -305,7 +316,7 @@ onUpdate(dt=>{
  if(saveTimer>8){saveTimer=0;save();}
  U=Math.max(.8,Math.min(1.1,f.width/1440));W=f.width/U;H=f.height/U;mobile=W<780;
  let px=(isDown('pan_right')?1:0)-(isDown('pan_left')?1:0),pz=(isDown('pan_down')?1:0)-(isDown('pan_up')?1:0);if(px||pz)view.pan(px*dt*8,pz*dt*8);
- view.updateCamera(f.width,f.height,mobile?0:310*U,(mobile?132:106)*U,(mobile?389:64)*U);view.update(s,s.time,selected);
+ view.updateCamera(f.width,f.height,mobile?0:310*U,(mobile?132:106)*U,(mobile?389:64)*U);view.update(s,s.time,selected,showFlow);
  const p=pointer();hoverTile=p&&!hitUI(p.x/U,p.y/U)?view.pick(p.x,p.y):null;
  buttons=[];
  if(!modal&&!s.ended){header();sidebar();footer();worldLabels();constructionHUD();

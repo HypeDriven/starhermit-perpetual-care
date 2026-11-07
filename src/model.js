@@ -4,6 +4,8 @@ import { ROOM_TYPES, EQUIPMENT, STAFF_TYPES, CONDITIONS } from './catalogue.js';
 export { ROOM_TYPES, EQUIPMENT, STAFF_TYPES, CONDITIONS } from './catalogue.js';
 import * as management from './management.js';
 export * from './management.js';
+import * as operations from './operations.js';
+export * from './operations.js';
 const FIRST=['Robin','Sam','Jules','Casey','Alex','Noor','Jamie','Drew','Ari','Morgan','Lee','Billie','Elliot','Ash','Pip','Frankie'];
 const LAST=['Wells','Okafor','Chen','Patel','Moss','Bell','Flores','Stone','Reed','Brooks','Finch','Park'];
 const key=(x,z)=>z*WIDTH+x, clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.z-b.z), integer=Number.isInteger;
@@ -77,7 +79,7 @@ export function canBuild(s,type,x,z,w,h){
 }
 export function buildRoom(s,type,x,z,w,h){
  const c=canBuild(s,type,x,z,w,h);if(!c.ok)return c;
- const room={id:s.nextId++,type,x,z,w,h,door:c.door,staff:null,condition:100,completed:0,level:0,closed:false,upgrading:0};spend(s,c.cost);s.rooms.push(room);s.revision++;
+ const room={id:s.nextId++,type,x,z,w,h,door:c.door,staff:null,cover:null,condition:100,completed:0,level:0,closed:false,upgrading:0,openedAt:s.time,busyTime:0,waitTotal:0,started:0};spend(s,c.cost);s.rooms.push(room);s.revision++;
  log(s,ROOM_TYPES[type].name+' built','Place the required equipment inside.','good');return {ok:true,room};
 }
 export function interiorAccessible(s,r){
@@ -111,6 +113,40 @@ export function canPlace(s,type,x,z,rotation=0){
 }
 export function placeItem(s,type,x,z,rotation=0){const c=canPlace(s,type,x,z,rotation);if(!c.ok)return c;const item={id:s.nextId++,type,x,z,rotation:rotation%4,room:c.room};spend(s,EQUIPMENT[type].cost);s.items.push(item);s.revision++;return {ok:true,item};}
 export function removeItem(s,id){const i=s.items.find(i=>i.id===id);if(!i)return fail('Choose an object to sell.');if(i.room&&s.patients.some(p=>p.room===i.room&&p.state==='service'))return fail('Wait for treatment to finish.');s.cash+=Math.round(EQUIPMENT[i.type].cost*.5);s.items=s.items.filter(x=>x!==i);s.revision++;return {ok:true};}
+function roomBusy(s,id){return id!=null&&(s.patients.some(p=>p.room===id&&['enter','service'].includes(p.state)||p.amenity&&s.items.some(i=>i.id===p.amenity.id&&i.room===id))||s.staff.some(a=>a.resting&&a.restRoom===id));}
+export function canMoveItem(s,id,x,z,rotation=0){
+ const i=s.items.find(i=>i.id===id);if(!i)return fail('Choose a furnishing to move.');const destination=roomAt(s,x,z);
+ if(roomBusy(s,i.room)||roomBusy(s,destination?.id))return fail('Pause intake and finish current care before rearranging this room.');
+ const temp={...s,cash:Math.max(s.cash,EQUIPMENT[i.type].cost),items:s.items.filter(a=>a.id!==id),revision:s.revision+1};
+ return canPlace(temp,i.type,x,z,rotation);
+}
+export function moveItem(s,id,x,z,rotation=0){
+ const c=canMoveItem(s,id,x,z,rotation);if(!c.ok)return c;const i=s.items.find(i=>i.id===id);
+ Object.assign(i,{x,z,rotation:rotation%4,room:c.room});s.revision++;
+ for(const p of s.patients){if(p.seat?.id===id)p.seat=null;if(p.amenity?.id===id){p.amenity=null;p.state='queue';p.path=[];}}
+ return {ok:true,item:i};
+}
+export function canExpandRoom(s,id,x,z,w,h){
+ const r=s.rooms.find(r=>r.id===id);if(!r)return fail('Choose a room to expand.');
+ if(![x,z,w,h].every(integer)||!within(x,z)||!within(x+w-1,z+h-1)||w>10||h>10)return fail('Keep the new footprint inside the floor and within 10 × 10 tiles.');
+ if(x>r.x||z>r.z||x+w<r.x+r.w||z+h<r.z+r.h||w*h<=r.w*r.h)return fail('Draw a larger rectangle containing the whole existing room.');
+ if(roomBusy(s,id)||r.upgrading>0)return fail('Pause room intake and finish current care before expanding.');
+ for(let zz=z;zz<z+h;zz++)for(let xx=x;xx<x+w;xx++){
+  if(xx>=r.x&&xx<r.x+r.w&&zz>=r.z&&zz<r.z+r.h)continue;
+  if(xx>=12&&xx<=15)return fail('Keep the central entrance corridor clear.');
+  if(roomAt(s,xx,zz)||itemAt(s,xx,zz))return fail('The extension overlaps another room or object.');
+  if([...s.staff,...s.patients].some(a=>Math.floor(a.x)===xx&&Math.floor(a.z)===zz))return fail('Someone is standing in the extension.');
+ }
+ const cost=(w*h-r.w*r.h)*ROOM_TYPES[r.type].tile+300;if(s.cash<cost)return fail('The extension costs '+money(cost)+'.');
+ const base={...s,rooms:s.rooms.filter(a=>a!==r),revision:s.revision+1},expanded={...r,x,z,w,h};
+ const d=r.door,onWall=d.side==='west'?d.x===x:d.side==='east'?d.x===x+w-1:d.side==='north'?d.z===z:d.z===z+h-1;
+ expanded.door=onWall?{...d}:chooseDoor(base,expanded);
+ if(!expanded.door)return fail('The extension needs a clear door onto a corridor.');
+ const temp={...s,rooms:s.rooms.map(a=>a===r?expanded:a),revision:s.revision+1};
+ if(itemAt(s,expanded.door.x,expanded.door.z)||!interiorAccessible(temp,expanded)||temp.rooms.some(a=>!pathfind(temp,ENTRY,a.door)))return fail('Keep every room door and furnishing accessible.');
+ return {ok:true,cost,room:expanded};
+}
+export function expandRoom(s,id,x,z,w,h){const c=canExpandRoom(s,id,x,z,w,h);if(!c.ok)return c;const r=s.rooms.find(r=>r.id===id);spend(s,c.cost);Object.assign(r,c.room);s.revision++;log(s,'Room expanded',ROOM_TYPES[r.type].name+' now has '+w+' × '+h+' tiles. Furnishings and staff were retained.','good');return {ok:true,room:r};}
 export function demolish(s,id){
  const r=s.rooms.find(r=>r.id===id);if(!r)return fail('Choose a room to demolish.');if(s.patients.some(p=>p.room===id&&p.state==='service'))return fail('Wait for treatment to finish.');
  s.cash+=Math.round((roomCost(r.type,r.w,r.h)+roomItems(s,r).reduce((n,i)=>n+EQUIPMENT[i.type].cost,0))*.5);s.items=s.items.filter(i=>i.room!==id);s.rooms=s.rooms.filter(x=>x!==r);
@@ -122,14 +158,21 @@ export function roomStatus(s,r){
  if(r.upgrading>0)return {ready:false,label:'Refitting · '+Math.ceil(r.upgrading)+'s',missing:[]};
  const nav=navigation(s);if(!nav.connected.has(r.id))nav.connected.set(r.id,!!pathfind(s,ENTRY,r.door));
  if(!nav.connected.get(r.id))return {ready:false,label:'Door is blocked',missing:[]};if(r.condition<=10)return {ready:false,label:'Machine broken — hire a caretaker',missing:[]};
- const a=s.staff.find(a=>a.id===r.staff);if(t.staff&&!a)return {ready:false,label:'Needs a '+t.staff,missing:[]};if(a?.training)return {ready:false,label:'Employee in training',missing:[]};if(a?.resting)return {ready:false,label:'Staff taking a break',missing:[]};return {ready:true,label:r.closed?'Intake paused':t.staff?'Open · '+a.name:'Open',missing:[]};
+ const a=workingStaff(s,r);if(t.staff&&!a)return {ready:false,label:'Needs a '+t.staff,missing:[]};if(a?.training)return {ready:false,label:'Employee in training',missing:[]};if(a?.resting)return {ready:false,label:'Staff taking a break',missing:[]};
+ const supply=operations.supplyFor(r.type),intake=!r.closed&&operations.supplyReady(s,r.type);
+ return {ready:true,intake,label:r.closed?'Intake paused':!intake?'Awaiting '+operations.SUPPLIES[supply].name.toLowerCase():r.cover?'Covered by '+a.name:t.staff?'Open · '+a.name:'Open',missing:[]};
+}
+export function workingStaff(s,r){return s.staff.find(a=>a.id===r.cover)||s.staff.find(a=>a.id===r.staff)||null;}
+export function roomMetrics(s,r){
+ const queue=s.patients.filter(p=>p.room===r.id&&p.state==='queue'),active=s.patients.filter(p=>p.room===r.id&&['enter','service'].includes(p.state)),capacity=r.type==='ward'?Math.max(1,roomItems(s,r).filter(i=>i.type==='bed').length):1,a=workingStaff(s,r),duration=management.serviceDuration(s,r)/Math.max(.5,a?.skill||1),elapsed=Math.max(1,s.time-r.openedAt);
+ return {queue:queue.length,active:active.length,capacity,averageWait:r.started?r.waitTotal/r.started:0,estimatedWait:queue.length?Math.ceil((Math.max(0,queue.length-1)/2+active.length)/capacity*duration):0,utilisation:Math.min(100,r.busyTime/(elapsed*capacity)*100),casesPerDay:r.completed/elapsed*DAY_LENGTH};
 }
 function workCell(s,r){
  const cells=[];for(let z=r.z;z<r.z+r.h;z++)for(let x=r.x;x<r.x+r.w;x++)if(!itemAt(s,x,z)&&!(x===r.door.x&&z===r.door.z))cells.push({x,z});
  cells.sort((a,b)=>dist(a,{x:r.x+r.w/2,z:r.z+r.h/2})-dist(b,{x:r.x+r.w/2,z:r.z+r.h/2}));return cells.find(c=>pathfind(s,r.door,c))||r.door;
 }
 function patientCell(s,r,p){
- const staff=s.staff.find(a=>a.id===r.staff),occupied=s.patients.filter(a=>a!==p&&a.room===r.id&&['enter','service'].includes(a.state));
+ const staff=workingStaff(s,r),occupied=s.patients.filter(a=>a!==p&&a.room===r.id&&['enter','service'].includes(a.state));
  const primary=s.items.find(i=>i.id===p.bed)||roomItems(s,r).find(i=>i.type===(r.type==='ward'?'bed':ROOM_TYPES[r.type].required[0]));
  const target=primary?{x:primary.x,z:primary.z}:{x:r.x+r.w/2,z:r.z+r.h/2},candidates=[];
  for(let z=r.z;z<r.z+r.h;z++)for(let x=r.x;x<r.x+r.w;x++){
@@ -148,18 +191,25 @@ function move(s,a,dt,speed=1.6){
 export function assignStaff(s){
  for(const r of s.rooms)if(r.staff&&!s.staff.some(a=>a.id===r.staff))r.staff=null;
  for(const a of s.staff){if(a.type==='janitor')continue;if(a.room&&!s.rooms.some(r=>r.id===a.room)){a.room=null;a.path=[];}
-  if(!a.room){const r=s.rooms.find(r=>ROOM_TYPES[r.type].staff===a.type&&!r.staff);if(r){r.staff=a.id;a.room=r.id;route(s,a,workCell(s,r));}}}
+  if(a.covering&&!s.rooms.some(r=>r.id===a.covering&&r.cover===a.id))a.covering=null;
+  if(!a.room&&!a.covering){const r=s.rooms.find(r=>ROOM_TYPES[r.type].staff===a.type&&!r.staff);if(r){r.staff=a.id;a.room=r.id;route(s,a,workCell(s,r));}}}
+ for(const r of s.rooms){
+  let primary=s.staff.find(a=>a.id===r.staff);const cover=s.staff.find(a=>a.id===r.cover);
+  if(!primary&&cover){r.staff=cover.id;cover.room=r.id;cover.covering=null;r.cover=null;primary=cover;}
+  if(r.cover&&(!cover||cover.resting||cover.training||primary&&!primary.training&&!primary.resting&&!primary.path.length)){if(cover){cover.covering=null;if(!cover.resting)route(s,cover,{x:14,z:16});}r.cover=null;}
+  if(primary&&(primary.training||primary.resting)&&!r.cover){const spare=s.staff.find(a=>a.type===ROOM_TYPES[r.type].staff&&!a.room&&!a.covering&&!a.training&&!a.resting);if(spare){r.cover=spare.id;spare.covering=r.id;route(s,spare,workCell(s,r));}}
+ }
 }
 export function hire(s,type){
  const t=STAFF_TYPES[type];if(!t)return fail('Choose a staff role.');if(s.cash<t.cost)return fail('Not enough cash for recruitment.');if(s.staff.length>=24)return fail('The staffing limit is 24.');
  const id=s.nextId++,a={id,type,name:FIRST[id%FIRST.length]+' '+LAST[id%LAST.length],x:13.5,z:20.5,energy:100,skill:1+random(s)*.3,room:null,path:[],resting:false};spend(s,t.cost);s.staff.push(a);management.initializeDepth(s);assignStaff(s);log(s,t.name+' hired',a.name+' has joined the team.','good');return {ok:true,staff:a};
 }
-export function fire(s,id){const a=s.staff.find(a=>a.id===id);if(!a)return fail('Choose a staff member.');for(const r of s.rooms)if(r.staff===id)r.staff=null;s.staff=s.staff.filter(x=>x.id!==id);assignStaff(s);return {ok:true};}
+export function fire(s,id){const a=s.staff.find(a=>a.id===id);if(!a)return fail('Choose a staff member.');for(const r of s.rooms){if(r.staff===id)r.staff=null;if(r.cover===id)r.cover=null;}s.staff=s.staff.filter(x=>x.id!==id);assignStaff(s);return {ok:true};}
 export const dailyCost=s=>260+s.rooms.reduce((n,r)=>n+45+(r.level||0)*35,0)+s.staff.reduce((n,a)=>n+management.wage(a),0)+(s.policies.maintenance==='preventive'?100:0);
 export function takeLoan(s){if(s.loan)return fail('Repay the current loan first.');s.loan=20000;s.cash+=20000;log(s,'Bank loan','A $20,000 lifeline. Daily interest is $200.');return {ok:true};}
 export function repayLoan(s){if(!s.loan)return fail('There is no outstanding loan.');if(s.cash<s.loan)return fail('You need '+money(s.loan)+' to repay the loan.');s.cash-=s.loan;s.loan=0;return {ok:true};}
 export function setOpen(s,v){s.open=!!v;log(s,v?'Doors open':'Admissions paused',v?'Reception is ready for the first patients.':'Existing patients will continue treatment.');}
-function spawn(s,contract=null){if(s.patients.length>=55)return false;const choices=CONDITIONS.filter(c=>s.cured>=(c.unlock||0)),c=contract?CONDITIONS[contract.condition]:choices[Math.floor(random(s)*choices.length)],id=s.nextId++;s.patients.push({id,name:FIRST[id%FIRST.length]+' '+LAST[(id*3)%LAST.length],condition:CONDITIONS.indexOf(c),health:contract?58:90,patience:100,x:13.5,z:20.5,stage:'reception',state:'walk',room:null,path:[],progress:0,billed:0,routeRevision:-1,wait:0,angle:Math.PI,thirst:20+random(s)*15,bladder:15+random(s)*15,confidence:0,attempts:0,urgency:contract?4:1,contract:contract?.uid||null,amenity:null,seat:null,bed:null,arrived:s.time});return true;}
+function spawn(s,contract=null){if(s.patients.length>=55)return false;const choices=CONDITIONS.filter(c=>s.cured>=(c.unlock||0)),c=contract?CONDITIONS[contract.condition]:choices[Math.floor(random(s)*choices.length)],id=s.nextId++;s.patients.push({id,name:FIRST[id%FIRST.length]+' '+LAST[(id*3)%LAST.length],condition:CONDITIONS.indexOf(c),health:contract?58:90,patience:100,x:13.5,z:20.5,stage:'reception',state:'walk',room:null,path:[],progress:0,billed:0,routeRevision:-1,wait:0,angle:Math.PI,thirst:20+random(s)*15,bladder:15+random(s)*15,confidence:0,attempts:0,urgency:contract?4:1,contract:contract?.uid||null,amenity:null,seat:null,bed:null,arrived:s.time,careStep:0,careHistory:[],supplyReserved:false,roomWait:0});return true;}
 function queuePosition(s,p){
  const index=s.patients.filter(q=>q.stage===p.stage&&q.room===p.room&&management.queuePriority(s,q,p)<0&&q.state!=='exit').length;
  if(p.stage==='reception')return {x:13+index%2,z:18+Math.floor(index/2)%3};
@@ -171,25 +221,27 @@ function queuePosition(s,p){
  const r=s.rooms.find(r=>r.id===p.room);if(!r)return {x:12+p.id%4,z:4+p.id%13};
  const o=doorOutside(r),c=[];for(let z=Math.max(1,o.z-3);z<=Math.min(DEPTH-2,o.z+3);z++)for(let x=Math.max(1,o.x-3);x<=Math.min(WIDTH-2,o.x+3);x++)if(!roomAt(s,x,z)&&!itemAt(s,x,z))c.push({x,z});c.sort((a,b)=>dist(a,o)-dist(b,o));return c[index%c.length]||o;
 }
-function candidateRoom(s,p){const c=s.rooms.filter(r=>r.type===p.stage&&!r.closed&&roomStatus(s,r).ready);c.sort((a,b)=>s.patients.filter(q=>q.room===a.id).length-s.patients.filter(q=>q.room===b.id).length||a.id-b.id);return c.find(r=>pathfind(s,p,doorOutside(r)))||null;}
+function candidateRoom(s,p){const c=s.rooms.filter(r=>r.type===p.stage&&!r.closed&&roomStatus(s,r).ready);c.sort((a,b)=>Number(!operations.supplyReady(s,a.type))-Number(!operations.supplyReady(s,b.type))||s.patients.filter(q=>q.room===a.id).length-s.patients.filter(q=>q.room===b.id).length||a.id-b.id);return c.find(r=>pathfind(s,p,doorOutside(r)))||null;}
 function finish(s,p){
- const r=s.rooms.find(r=>r.id===p.room),t=ROOM_TYPES[r.type],a=s.staff.find(a=>a.id===r.staff);
+ const r=s.rooms.find(r=>r.id===p.room),t=ROOM_TYPES[r.type],a=workingStaff(s,r);
  a.experience+=management.researched(s,'training')?2:1;if(a.experience%12===0)a.skill=Math.min(1.9,a.skill+.02);
  r.completed++;r.condition=Math.max(0,r.condition-(r.type==='gp'?1:2)*(management.researched(s,'engineering')?.65:1)/(1+r.level*.15));
  const fee=Math.round(t.fee*s.policies.fees/100),expense=r.type==='gp'?8:r.type==='pharmacy'?25:r.type==='ward'?40:r.type==='scanner'?65:120;
  spend(s,expense);
  if(p.stage==='gp'){
   if(!p.diagnosed){earn(s,fee);p.billed+=fee;}
-  p.confidence=Math.min(.99,management.diagnosisConfidence(s,r,a)+p.attempts*.03);p.diagnosed=true;p.stage=CONDITIONS[p.condition].treatment;p.room=null;p.state='queue';p.progress=0;p.path=[];p.seat=null;
+  p.confidence=Math.min(.99,management.diagnosisConfidence(s,r,a)+p.attempts*.03);p.diagnosed=true;p.stage=operations.carePlan(p)[p.careStep||0];p.room=null;p.state='queue';p.progress=0;p.path=[];p.seat=null;p.supplyReserved=false;p.roomWait=0;
  }else if(random(s)>management.treatmentChance(s,r,a,p)){
-  s.failedTreatments++;p.attempts++;p.health=Math.max(1,p.health-8);p.patience=Math.max(0,p.patience-8);p.stage='gp';p.room=null;p.state='queue';p.progress=0;p.path=[];p.bed=null;
+  s.failedTreatments++;p.attempts++;p.health=Math.max(1,p.health-8);p.patience=Math.max(0,p.patience-8);p.stage='gp';p.room=null;p.state='queue';p.progress=0;p.path=[];p.bed=null;p.supplyReserved=false;p.roomWait=0;
   log(s,'A second opinion',p.name+' needs a revised diagnosis after unsuccessful treatment. No treatment fee was charged.','bad');
   if(p.attempts>=3)abandon(s,p);
  }else{
-  earn(s,fee);p.billed+=fee;s.cured++;if(s.contract&&p.contract===s.contract.uid)s.contract.cured++;
+  earn(s,fee);p.billed+=fee;p.careHistory??=[];p.careHistory.push({stage:r.type,time:s.time,fee});p.supplyReserved=false;
+  const plan=operations.carePlan(p);if((p.careStep||0)<plan.length-1){p.careStep=(p.careStep||0)+1;p.stage=plan[p.careStep];p.room=null;p.state='queue';p.progress=0;p.path=[];p.bed=null;p.roomWait=0;p.health=Math.min(100,p.health+8);p.patience=Math.min(100,p.patience+5);log(s,'Follow-up care',p.name+' now needs '+ROOM_TYPES[p.stage].name.toLowerCase()+'.');return;}
+  s.cured++;if(s.contract&&p.contract===s.contract.uid)s.contract.cured++;
   s.satisfaction=s.satisfaction*.92+clamp(p.patience+(s.policies.fees===80?8:s.policies.fees===125?-12:0),0,100)*.08;
   s.reputation=clamp(s.reputation+1.2+(p.patience>80?.15:0),0,100);p.health=100;p.state='exit';p.stage='leaving';p.room=null;p.bed=null;p.seat=null;route(s,p,ENTRY);
-  log(s,'Another happy discharge',p.name+' recovered from '+CONDITIONS[p.condition].name.toLowerCase()+'. +'+money(fee),'good');if(s.cured===6)log(s,'Diagnostics unlocked','Scanner rooms and specialist recruitment are now available.','good');if(s.cured===16)log(s,'Surgery unlocked','Spontaneous paperwork can now be removed surgically.','good');
+  log(s,'Another happy discharge',p.name+' recovered from '+CONDITIONS[p.condition].name.toLowerCase()+'. +'+money(fee),'good');if(s.cured===6)log(s,'Diagnostics unlocked','Scanner rooms and specialist recruitment are now available.','good');if(s.cured===10)log(s,'Psychiatry unlocked','New referrals need talking therapies and, sometimes, follow-up prescriptions.','good');if(s.cured===16)log(s,'Surgery unlocked','Spontaneous paperwork can now be removed surgically.','good');if(s.cured===22)log(s,'Physiotherapy unlocked','Rehabilitation referrals may need ward aftercare.','good');
  }
 }
 function abandon(s,p,dead=false){if(p.state==='exit')return;s.lost++;if(dead){s.deaths++;spend(s,2500);}s.reputation=clamp(s.reputation-(dead?7:3),0,100);p.state='exit';p.stage='leaving';p.room=null;p.path=[];p.amenity=null;p.seat=null;p.bed=null;route(s,p,ENTRY);log(s,dead?'An unfortunate outcome':'Patient leaving',p.name+(dead?' did not receive care in time.':' left without completing treatment.'),'bad');}
@@ -241,7 +293,7 @@ function staffTick(s,a,dt){
   else{if(!a.path.length&&dist(a,{x:14.5,z:16.5})>1)route(s,a,{x:14,z:16});move(s,a,dt);}
   return;
  }
- const r=s.rooms.find(r=>r.id===a.room);if(!r){a.energy=clamp(a.energy+dt*.3,0,100);return;}
+ const r=s.rooms.find(r=>r.id===(a.room||a.covering));if(!r){move(s,a,dt);a.energy=clamp(a.energy+dt*(a.resting&&!a.path.length?5:.3),0,100);if(a.resting&&a.energy>=95){a.resting=false;route(s,a,{x:14,z:16});}return;}
  const rest=s.rooms.find(r=>r.type==='staff'&&!r.closed&&roomStatus(s,r).ready&&s.staff.filter(b=>b!==a&&b.resting&&b.restRoom===r.id).length<roomItems(s,r).filter(i=>i.type==='sofa').length*2);
  if(!a.resting&&a.energy<22&&rest){a.resting=true;a.restRoom=rest.id;route(s,a,workCell(s,rest));}
  if(a.resting){const lounge=s.rooms.find(r=>r.id===a.restRoom);if(!lounge){a.resting=false;route(s,a,workCell(s,r));}else{move(s,a,dt);if(!a.path.length)a.energy=clamp(a.energy+dt*5*(1+lounge.level*.15),0,100);if(a.energy>=95){a.resting=false;route(s,a,workCell(s,r));}return;}}
@@ -249,6 +301,7 @@ function staffTick(s,a,dt){
 }
 export function tick(s,dt){
  if(s.ended||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.5);s.time+=dt;
+ operations.suppliesTick(s);
  const day=Math.floor(s.time/DAY_LENGTH)+1;if(day!==s.day){const cost=dailyCost(s)+(s.loan?200:0);spend(s,cost);s.day=day;s.lastReport={day:day-1,cured:s.cured-s.dayStart.cured,earned:s.earned-s.dayStart.earned,spent:s.spent-s.dayStart.spent,payroll:cost,cash:s.cash,lost:s.lost-s.dayStart.lost};s.dayStart={earned:s.earned,spent:s.spent,cured:s.cured,lost:s.lost};s.history.push(s.lastReport);s.history=s.history.slice(-14);log(s,'Day '+s.day+' · morning accounts','Payroll and running costs: '+money(cost)+'.');}
  s.arrival-=dt;if(s.open&&s.arrival<=0){spawn(s);s.arrival=Math.max(7,15-s.reputation*.055)*(s.policies.fees===80?.82:s.policies.fees===125?1.22:1);}
  if(s.contract?.pending>0&&spawn(s,s.contract))s.contract.pending--;
@@ -269,16 +322,17 @@ export function tick(s,dt){
    if(!ahead&&!p.path.length&&dist(p,{x:13.5,z:18.5})<.2){p.progress+=dt;if(p.progress>=2.8){p.stage='gp';p.state='queue';p.progress=0;p.path=[];p.routeRevision=-1;}}continue;
   }
   let r=s.rooms.find(r=>r.id===p.room);
-  if(dispatch&&(!r||!roomStatus(s,r).ready||r.closed&&p.state==='queue')&&p.state!=='service'){const replacement=candidateRoom(s,p);if(replacement?.id!==p.room){p.room=replacement?.id||null;p.path=[];p.routeRevision=-1;}r=replacement;}
-  if(!r){if(dispatch&&(!p.path.length||p.routeRevision!==s.revision))route(s,p,queuePosition(s,p));move(s,p,dt);p.wait+=dt;continue;}
-  const a=s.staff.find(a=>a.id===r.staff),slots=r.type==='ward'?roomItems(s,r).filter(i=>i.type==='bed').length:1,active=s.patients.filter(q=>q.room===r.id&&(q.state==='service'||q.state==='enter')),prior=s.patients.some(q=>q.room===r.id&&management.queuePriority(s,q,p)<0&&q.state==='queue');
-  if(p.state==='queue'&&active.length<slots&&!prior&&!r.closed&&roomStatus(s,r).ready&&a&&!a.path.length){p.state='enter';p.seat=null;if(r.type==='ward')p.bed=roomItems(s,r).find(i=>i.type==='bed'&&!active.some(q=>q.bed===i.id))?.id||null;p.destination=patientCell(s,r,p);route(s,p,p.destination);}
-  if(p.state==='queue'){const t=queuePosition(s,p);if(dispatch&&(p.routeRevision!==s.revision||!p.path.length&&dist(p,{x:t.x+.5,z:t.z+.5})>.3))route(s,p,t);move(s,p,dt);p.wait+=dt;}
+  if(dispatch&&p.state==='queue'&&(!r||!roomStatus(s,r).ready||r.closed)){const replacement=candidateRoom(s,p);if(replacement?.id!==p.room){p.room=replacement?.id||null;p.path=[];p.routeRevision=-1;}r=replacement;}
+  if(!r){if(dispatch&&(!p.path.length||p.routeRevision!==s.revision))route(s,p,queuePosition(s,p));move(s,p,dt);p.wait+=dt;p.roomWait=(p.roomWait||0)+dt;continue;}
+  const a=workingStaff(s,r),slots=r.type==='ward'?roomItems(s,r).filter(i=>i.type==='bed').length:1,active=s.patients.filter(q=>q.room===r.id&&(q.state==='service'||q.state==='enter')),prior=s.patients.some(q=>q.room===r.id&&management.queuePriority(s,q,p)<0&&q.state==='queue');
+  if(p.state==='queue'&&active.length<slots&&!prior&&roomStatus(s,r).ready&&roomStatus(s,r).intake&&a&&!a.path.length&&operations.reserveSupply(s,p,r.type)){r.waitTotal+=p.roomWait||0;r.started++;p.roomWait=0;p.state='enter';p.seat=null;if(r.type==='ward')p.bed=roomItems(s,r).find(i=>i.type==='bed'&&!active.some(q=>q.bed===i.id))?.id||null;p.destination=patientCell(s,r,p);route(s,p,p.destination);}
+  if(p.state==='queue'){const t=queuePosition(s,p);if(dispatch&&(p.routeRevision!==s.revision||!p.path.length&&dist(p,{x:t.x+.5,z:t.z+.5})>.3))route(s,p,t);move(s,p,dt);p.wait+=dt;p.roomWait=(p.roomWait||0)+dt;}
   else if(p.state==='enter'){if(p.routeRevision!==s.revision){p.destination=patientCell(s,r,p);route(s,p,p.destination);}move(s,p,dt);if(!p.path.length&&roomAt(s,Math.floor(p.x),Math.floor(p.z))?.id===r.id){p.state='service';p.progress=0;}}
-  else if(p.state==='service'&&roomStatus(s,r).ready&&a&&!a.path.length){p.progress+=dt*a.skill*(.55+a.energy*.0045)*(a.trait==='quick'?1.1:1)*(a.morale<25?.85:1);a.energy=Math.max(5,a.energy-dt*.45*(a.trait==='tireless'?.8:1));if(p.progress>=management.serviceDuration(s,r))finish(s,p);}
+  else if(p.state==='service'&&roomStatus(s,r).ready&&a&&!a.path.length){r.busyTime+=dt;p.progress+=dt*a.skill*(.55+a.energy*.0045)*(a.trait==='quick'?1.1:1)*(a.morale<25?.85:1);a.energy=Math.max(5,a.energy-dt*.45*(a.trait==='tireless'?.8:1));if(p.progress>=management.serviceDuration(s,r))finish(s,p);}
  }
- const researchPower=s.staff.filter(a=>a.type==='researcher'&&!a.resting&&!a.training&&!a.path.length&&s.rooms.some(r=>r.id===a.room&&!r.closed&&roomStatus(s,r).ready)).reduce((n,a)=>n+a.skill*(.5+a.energy*.005)*(1+s.rooms.find(r=>r.id===a.room).level*.15),0);
+ const researchPower=s.staff.filter(a=>a.type==='researcher'&&!a.resting&&!a.training&&!a.path.length&&s.rooms.some(r=>r.id===(a.room||a.covering)&&workingStaff(s,r)?.id===a.id&&!r.closed&&roomStatus(s,r).ready)).reduce((n,a)=>n+a.skill*(.5+a.energy*.005)*(1+s.rooms.find(r=>r.id===(a.room||a.covering)).level*.15),0);
  management.developmentTick(s,dt,researchPower);
+ if(s.research.active)for(const r of s.rooms)if(r.type==='research'&&roomStatus(s,r).ready&&!r.closed&&workingStaff(s,r)&&!workingStaff(s,r).path.length)r.busyTime+=dt;
  if(s.cash<-15000)s.ended='The hospital is insolvent. Secure a loan before the cash runs out, or start again.';
 }
 export function objectives(s){const ready=t=>s.rooms.some(r=>r.type===t&&roomStatus(s,r).ready);return [

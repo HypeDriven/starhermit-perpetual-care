@@ -1,0 +1,162 @@
+# viewport 1440x1000@1
+frames 15
+expect PERPETUAL CARE
+click =Rooms
+frames 4
+click GP office
+frames 4
+drag 815 274 815 384 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 815 274
+frames 5
+click 835 288
+frames 5
+click =Staff
+frames 4
+click Hire Doctor
+frames 5
+click =Rooms
+frames 4
+click Pharmacy
+frames 4
+drag 1115 480 1115 562 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 1115 480
+frames 5
+click =Staff
+frames 4
+click Hire Nurse
+frames 5
+click =Rooms
+frames 4
+click Ward
+frames 4
+drag 995 562 995 672 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 995 562
+frames 5
+click =Staff
+frames 4
+click Hire Nurse
+frames 5
+click =Rooms
+frames 4
+click Staff room
+frames 4
+drag 675 370 675 452 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 675 370
+frames 5
+click =Rooms
+frames 4
+click Toilets
+frames 4
+drag 555 452 555 507 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 555 452
+frames 5
+click 575 466
+frames 5
+click =Staff
+frames 4
+click Hire Caretaker
+frames 5
+key Escape 1
+frames 4
+click 815 357
+frames 5
+click =Manage
+frames 4
+click =Rooms
+frames 4
+click Expand room
+frames 4
+drag 815 247 815 411 20
+frames 5
+expect Expand $
+click Expand $
+frames 5
+expect Room expanded.
+save expanded
+click =Manage
+frames 4
+click =Rooms
+frames 4
+click Rearrange
+frames 4
+click 815 274
+frames 5
+key KeyR 1
+click 795 315
+frames 5
+expect Furnishing moved
+save rearranged
+key Escape 1
+frames 4
+click =Manage
+frames 4
+click =Supplies
+frames 4
+expect Keep the cupboards ready.
+click Manual
+frames 4
+click Automatic
+frames 4
+save supplies
+click Build a store room
+frames 4
+drag 855 658 855 740 20
+frames 5
+click Build room
+frames 5
+click 855 658
+frames 5
+key Escape 1
+frames 4
+click =Manage
+frames 4
+click =Supplies
+frames 4
+click Order 24
+frames 4
+expect Delivery ordered
+save delivery-ordered
+click =Back to hospital
+frames 4
+click Flow
+frames 4
+expect Flow on
+click =Hospital
+frames 4
+save furnished
+click Open hospital
+frames 10
+key KeyF 1
+key KeyF 1
+frames 1200
+save running
+click =Options
+frames 4
+frames 10
+expect Frame rate limit
+save graphics
+key Escape 1
+frames 5
+key Space 1
+frames 5
+save final

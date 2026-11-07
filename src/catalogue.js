@@ -8,6 +8,9 @@ export const ROOM_TYPES={
  research:{name:'Research lab',short:'LAB',color:'#c8d5df',wall:'#7a97ab',base:1600,tile:90,min:3,staff:'researcher',required:['console'],description:'Turn good ideas into better care.'},
  staff:{name:'Staff room',short:'TEA',color:'#e5cfaf',wall:'#b69a70',base:650,tile:65,min:3,staff:null,required:['sofa'],description:'Because doctors are people, allegedly.'},
  toilets:{name:'Toilets',short:'WC',color:'#d4d9dc',wall:'#8d9da5',base:600,tile:65,min:3,staff:null,required:['toilet','sink'],description:'The foundation of civilized medicine.'},
+ psychiatry:{name:'Psychiatry',short:'PSY',color:'#dcc8d6',wall:'#aa87a0',base:1900,tile:95,min:3,staff:'doctor',required:['therapy_couch','bookcase'],time:18,fee:2100,unlock:10,description:'Make a little room for a quieter mind.'},
+ physio:{name:'Physiotherapy',short:'PT',color:'#d8d5ad',wall:'#a3a06c',base:2300,tile:105,min:4,staff:'specialist',required:['treadmill'],time:22,fee:2600,unlock:22,description:'One small step toward a healthier discharge.'},
+ store:{name:'Store room',short:'STOCK',color:'#d7ccbb',wall:'#a49075',base:800,tile:65,min:3,staff:null,required:['shelves'],description:'Keep supplies close and make bulk orders worthwhile.'},
 };
 export const EQUIPMENT={
  desk:{name:'Doctor desk',cost:1100,w:1,h:1,rooms:['gp'],model:'desk',description:'Required in a GP office.'},
@@ -25,6 +28,10 @@ export const EQUIPMENT={
  vending:{name:'Drinks machine',cost:650,w:1,h:1,corridor:true,description:'Refreshments improve patient comfort.'},
  bin:{name:'Litter bin',cost:80,w:1,h:1,corridor:true,description:'A cleaner hospital is a happier hospital.'},
  radiator:{name:'Radiator',cost:180,w:1,h:1,any:true,description:'Comfort, without a prescription.'},
+ therapy_couch:{name:'Therapy couch',cost:1000,w:2,h:1,rooms:['psychiatry'],model:'sofa',description:'A comfortable place to talk things through.'},
+ bookcase:{name:'Clinical bookcase',cost:650,w:1,h:1,rooms:['psychiatry'],description:'Required reference material for psychiatry.'},
+ treadmill:{name:'Rehabilitation treadmill',cost:2400,w:2,h:1,rooms:['physio'],description:'Supervised exercise for fictional repetitive-strain ailments.'},
+ shelves:{name:'Supply shelving',cost:500,w:2,h:1,rooms:['store'],description:'Adds medicine, linen and sterile-kit storage capacity.'},
 };
 export const STAFF_TYPES={
  doctor:{name:'Doctor',cost:1200,wage:480,color:'#f6f2de',description:'Diagnoses patients in GP offices.'},
@@ -40,4 +47,8 @@ export const CONDITIONS=[
  {name:'Acute overthinking',treatment:'ward',color:'#99b49c'},
  {name:'Imaginary hiccups',treatment:'scanner',color:'#cab875',unlock:6},
  {name:'Spontaneous paperwork',treatment:'surgery',color:'#b68476',unlock:16},
+ {name:'Bureaucratic blues',treatment:'psychiatry',color:'#b28bb4',unlock:10},
+ {name:'Phantom overtime',treatment:'psychiatry',journey:['psychiatry','pharmacy'],color:'#a89dc6',unlock:10},
+ {name:'Keyboard elbow',treatment:'physio',color:'#b7ae70',unlock:22},
+ {name:'Paperwork cramps',treatment:'physio',journey:['physio','ward'],color:'#c89d6d',unlock:22},
 ];

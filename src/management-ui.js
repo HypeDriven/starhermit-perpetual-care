@@ -1,11 +1,11 @@
 import * as M from './model.js';
 
-export function drawManagement({s,x,y,w,h,section,scroll,selected,onTab,onClose,onBuild,onInspect,result,ui}){
+export function drawManagement({s,x,y,w,h,section,scroll,selected,onTab,onClose,onBuild,onExpand,onArrange,onInspect,result,ui}){
  const {rect,text,label,wrap,button,bar,C}=ui;
  rect(x,y,w,h,C.paper,13);label('ST. MARGIN · MANAGEMENT DESK',x+24,y+23);
  text('Good care takes good decisions.',x+24,y+46,w<600?25:31,C.ink,500,'serif');
- const tabs=[['policies','Policies'],['research','Research'],['people','People'],['rooms','Rooms'],['contracts','Contracts']];
- tabs.forEach(([id,name],i)=>button(name,x+18+i*(w-36)/5,y+96,(w-44)/5,32,()=>onTab(id),section===id?'selected':'plain'));
+ const tabs=[['policies','Policies'],['research','Research'],['people','People'],['rooms','Rooms'],['contracts','Contracts'],['supplies','Supplies']];
+ tabs.forEach(([id,name],i)=>button(name,x+18+i*(w-36)/6,y+96,(w-44)/6,32,()=>onTab(id),section===id?'selected':'plain'));
  const left=x+24,iw=w-48,bodyY=y+145,bottom=y+h-72;
  let cursor=bodyY-scroll;
  function row(height,paint){if(cursor>=bodyY&&cursor+height<=bottom){rect(left,cursor,iw,height-8,C.white,8);paint(left+14,cursor+12,iw-28);}cursor+=height;}
@@ -35,7 +35,7 @@ export function drawManagement({s,x,y,w,h,section,scroll,selected,onTab,onClose,
    if(active){bar(xx,yy+57,ww,active.progress/M.RESEARCH[active.id].work);text(working?'Research advances while the hospital is running.':'Waiting for a furnished lab and an available researcher.',xx,yy+75,11,working?C.green:C.orange);}
    else wrap('Fund a project, then run a furnished lab with a researcher. Benefits apply to every department.',xx,yy+56,ww,12,C.muted,17);
   });
-  row(57,(xx,yy,ww)=>button('Build a research lab',xx,yy,ww,29,onBuild,'primary'));
+  row(57,(xx,yy,ww)=>button('Build a research lab',xx,yy,ww,29,()=>onBuild('research'),'primary'));
   for(const[id,r]of Object.entries(M.RESEARCH))row(126,(xx,yy,ww)=>{
    const complete=M.researched(s,id),active=s.research.active?.id===id,why=M.researchAvailable(s,id);
    text(r.name,xx,yy,17,complete?C.green:C.ink,600);wrap(r.description,xx,yy+27,ww,12,C.muted,17);
@@ -47,31 +47,48 @@ export function drawManagement({s,x,y,w,h,section,scroll,selected,onTab,onClose,
   if(!s.staff.length)row(100,(xx,yy,ww)=>{text('A hospital needs people.',xx,yy,21,C.ink,500,'serif');wrap('Hire staff from the Staff catalogue, then return here to train them, raise their pay and assign departments.',xx,yy+35,ww,12);});
   const people=[...s.staff].sort((a,b)=>(selected?.kind==='staff'&&a.id===selected.id?-1:selected?.kind==='staff'&&b.id===selected.id?1:a.id-b.id));
   for(const a of people)row(183,(xx,yy,ww)=>{
-   const room=s.rooms.find(r=>r.id===a.room),rooms=s.rooms.filter(r=>M.ROOM_TYPES[r.type].staff===a.type);
+   const room=s.rooms.find(r=>r.id===(a.room||a.covering)),rooms=s.rooms.filter(r=>M.ROOM_TYPES[r.type].staff===a.type);
    text(a.name+' · '+M.STAFF_TYPES[a.type].name,xx,yy,ww<450?15:18,C.ink,600);text('Level '+(a.rank+1)+' · '+M.money(M.wage(a))+'/day · '+a.experience+' cases',xx,yy+26,11,C.muted);
    text(M.TRAITS[a.trait].name+' · '+M.TRAITS[a.trait].description,xx,yy+47,11,C.green);
    const half=(ww-20)/2;label('ENERGY '+Math.round(a.energy)+'%',xx,yy+70);bar(xx,yy+88,half,a.energy/100);label('MORALE '+Math.round(a.morale)+'%',xx+half+20,yy+70);bar(xx+half+20,yy+88,half,a.morale/100,a.morale<30?C.orange:C.green);
-   text(a.training?'Training · '+Math.ceil(a.training.remaining)+'s remaining':a.resting?'Taking a break':room?'Assigned: '+M.ROOM_TYPES[room.type].name+' #'+room.id:'Waiting for a matching room',xx,yy+101,11,C.muted);
+   text(a.training?'Training · '+Math.ceil(a.training.remaining)+'s remaining':a.resting?'Taking a break':room?(a.covering?'Covering: ':'Assigned: ')+M.ROOM_TYPES[room.type].name+' #'+room.id:'Waiting for a matching room',xx,yy+101,11,C.muted);
    const gap=6,bw=(ww-gap*2)/3;
-   button(a.training?'Training…':a.rank>=3?'Fully trained':'Train '+M.money(M.trainingCost(a)),xx,yy+130,bw,28,()=>action(M.trainStaff(s,a.id),'Training started.'),'plain',!!a.training||a.rank>=3);
+   button(a.training?'Training…':a.rank>=3?'Fully trained':'Train '+M.money(M.trainingCost(a)),xx,yy+130,bw,28,()=>action(M.trainStaff(s,a.id),'Training started.'),'plain',!!a.training||!!a.covering||a.rank>=3);
    button('+10% pay',xx+bw+gap,yy+130,bw,28,()=>action(M.raisePay(s,a.id),'Pay and morale updated.'),'plain',a.payBonus>=.5);
-   button('Next room',xx+(bw+gap)*2,yy+130,bw,28,()=>{const next=rooms[(rooms.findIndex(r=>r.id===a.room)+1)%rooms.length];action(M.assignEmployee(s,a.id,next.id),'Assignment updated.');},'plain',rooms.length===0);
+   button('Next room',xx+(bw+gap)*2,yy+130,bw,28,()=>{const next=rooms[(rooms.findIndex(r=>r.id===a.room)+1)%rooms.length];action(M.assignEmployee(s,a.id,next.id),'Assignment updated.');},'plain',rooms.length===0||!!a.covering);
   });
  }else if(section==='rooms'){
   if(!s.rooms.length)row(88,(xx,yy,ww)=>{text('Make room for good care.',xx,yy,21,C.ink,500,'serif');wrap('Build your first room to unlock refits, intake controls and department performance.',xx,yy+34,ww,12);});
   const rooms=[...s.rooms].sort((a,b)=>(selected?.kind==='room'&&a.id===selected.id?-1:selected?.kind==='room'&&b.id===selected.id?1:a.id-b.id));
-  for(const r of rooms)row(171,(xx,yy,ww)=>{
-   const status=M.roomStatus(s,r),n=s.patients.filter(p=>p.room===r.id&&p.state==='queue').length;
+  for(const r of rooms)row(237,(xx,yy,ww)=>{
+   const status=M.roomStatus(s,r),metrics=M.roomMetrics(s,r),n=metrics.queue;
    text(M.ROOM_TYPES[r.type].name+' #'+r.id+' · Level '+(r.level+1),xx,yy,18,C.ink,600);wrap(status.label,xx,yy+27,ww,11,status.ready?C.green:C.orange,16);
    const half=(ww-20)/2;label('CONDITION '+Math.round(r.condition)+'%',xx,yy+54);bar(xx,yy+72,half,r.condition/100,r.condition<40?C.orange:C.green);label('ROOM QUALITY '+Math.round(M.roomQuality(s,r))+'%',xx+half+20,yy+54);bar(xx+half+20,yy+72,half,M.roomQuality(s,r)/100);
-   const a=s.staff.find(a=>a.id===r.staff),clinical=M.ROOM_TYPES[r.type].time;
+   const a=M.workingStaff(s,r),clinical=M.ROOM_TYPES[r.type].time;
    const performance=r.upgrading>0?'Refit '+Math.ceil(r.upgrading)+'s':a&&clinical?(r.type==='gp'?Math.round(M.diagnosisConfidence(s,r,a)*100)+'% confidence':Math.round(M.treatmentChance(s,r,a,{confidence:.85})*100)+'% success at 85% confidence')+' · '+Math.ceil(M.serviceDuration(s,r))+'s/case':r.type==='research'?'Research speed +'+(r.level*15)+'%':r.type==='staff'?'Two rest places per sofa':'Visitors use amenities on their own.';
    wrap(r.completed+' procedures · '+n+' waiting · '+performance,xx,yy+86,ww,10,C.muted,13);
+   text(Math.round(metrics.utilisation)+'% busy · '+Math.round(metrics.averageWait)+'s average wait · '+metrics.active+'/'+metrics.capacity+' in care',xx,yy+115,11,C.green);
    const bw=(ww-12)/3;
-   button(r.level>=3?'Maximum level':r.upgrading>0?'Refitting…':'Upgrade '+M.money(M.upgradeCost(r)),xx,yy+117,bw,29,()=>action(M.upgradeRoom(s,r.id),'Refit started. This room will reopen in 12 seconds.'),'plain',r.level>=3||r.upgrading>0);
-   button(r.closed?'Resume intake':'Pause intake',xx+bw+6,yy+117,bw,29,()=>action(M.toggleRoom(s,r.id),r.closed?'Intake paused; current care continues.':'Room intake resumed.'),r.closed?'selected':'plain');
-   button('Inspect',xx+(bw+6)*2,yy+117,bw,29,()=>onInspect(r.id));
+   button(r.level>=3?'Maximum level':r.upgrading>0?'Refitting…':'Upgrade '+M.money(M.upgradeCost(r)),xx,yy+142,bw,29,()=>action(M.upgradeRoom(s,r.id),'Refit started. This room will reopen in 12 seconds.'),'plain',r.level>=3||r.upgrading>0);
+   button(r.closed?'Resume intake':'Pause intake',xx+bw+6,yy+142,bw,29,()=>action(M.toggleRoom(s,r.id),r.closed?'Intake paused; current care continues.':'Room intake resumed.'),r.closed?'selected':'plain');
+   button('Inspect',xx+(bw+6)*2,yy+142,bw,29,()=>onInspect(r.id));
+   button('Expand room',xx,yy+179,(ww-6)/2,29,()=>onExpand(r.id));button('Rearrange',xx+(ww+6)/2,yy+179,(ww-6)/2,29,()=>onArrange(r.id));
   });
+ }else if(section==='supplies'){
+  row(194,(xx,yy,ww)=>{
+   text('Keep the cupboards ready.',xx,yy,22,C.ink,500,'serif');wrap('Each treatment reserves one supply when care starts. Empty stock pauses new cases. Normal deliveries take 45s; express takes 8s.',xx,yy+33,ww,12,C.muted,17);
+   button('Automatic',xx,yy+100,(ww-6)/2,29,()=>action(M.setSupplyMode(s,'automatic'),'Automatic ordering enabled.'),s.supplyMode==='automatic'?'selected':'plain');button('Manual',xx+(ww+6)/2,yy+100,(ww-6)/2,29,()=>action(M.setSupplyMode(s,'manual'),'Manual ordering enabled.'),s.supplyMode==='manual'?'selected':'plain');button('Build a store room',xx,yy+137,ww,29,()=>onBuild('store'),'primary');
+  });
+  for(const[key,t]of Object.entries(M.SUPPLIES))row(160,(xx,yy,ww)=>{
+   const q=M.supplyQuote(s,key),rush=M.supplyQuote(s,key,true),incoming=s.deliveries.filter(d=>d.type===key).reduce((n,d)=>n+d.quantity,0),capacity=M.stockCapacity(s,key);
+   text(t.name+' · '+s.stock[key]+' / '+capacity,xx,yy,18,s.stock[key]===0?C.orange:C.ink,600);bar(xx,yy+31,ww,s.stock[key]/capacity);text(t.rooms.map(id=>M.ROOM_TYPES[id].name).join(' / ')+(incoming?' · '+incoming+' on order':''),xx,yy+49,11,C.muted);
+   text(s.supplyMode==='automatic'?'Auto-order at '+Math.ceil(t.batch/2)+' left · Funds required':'Order manually before supplies run out.',xx,yy+71,11,C.muted);
+   button('Order '+q.quantity+' · '+M.money(q.cost),xx,yy+104,(ww-6)/2,29,()=>action(M.orderSupplies(s,key),'Delivery ordered. Resume time for it to arrive.'),'plain',q.quantity===0);button('Express · '+M.money(rush.cost),xx+(ww+6)/2,yy+104,(ww-6)/2,29,()=>action(M.orderSupplies(s,key,true),'Express supplies arrive in 8 seconds.'),'plain',rush.quantity===0);
+  });
+  for(const d of s.deliveries)row(99,(xx,yy,ww)=>{
+   const cost=Math.max(50,Math.round(d.quantity*M.SUPPLIES[d.type].unit*.8));text(d.quantity+' '+M.SUPPLIES[d.type].name+' · '+Math.max(0,Math.ceil(d.arrival-s.time))+'s',xx,yy,16,C.ink,600);button('Expedite '+M.money(cost),xx,yy+40,ww,29,()=>action(M.rushDelivery(s,d.id),'Delivery expedited.'),'plain',d.arrival-s.time<=8);
+  });
+  row(102,(xx,yy,ww)=>{text('Storage pays for itself.',xx,yy,20,C.ink,500,'serif');wrap(M.storageShelves(s)+' active shelves. Each shelf increases capacity; a store room enables double-size orders at a 15% bulk discount.',xx,yy+32,ww,12,C.muted,17);});
  }else{
   row(s.contract?153:100,(xx,yy,ww)=>{
    const c=s.contract;

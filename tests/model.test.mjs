@@ -69,7 +69,7 @@ test('daily payroll, loan repayment and deterministic saves preserve balances',(
 });
 
 function visitor(s,extra={}){
- const p={id:s.nextId++,name:'Robin Test',condition:0,health:90,patience:100,x:13.5,z:17.5,stage:'gp',state:'queue',room:null,path:[],progress:0,billed:0,routeRevision:-1,wait:0,angle:0,thirst:25,bladder:20,confidence:.85,attempts:0,urgency:1,amenity:null,seat:null,bed:null,arrived:s.time,...extra};s.patients.push(p);return p;
+ const p={id:s.nextId++,name:'Robin Test',condition:0,health:90,patience:100,x:13.5,z:17.5,stage:'gp',state:'queue',room:null,path:[],progress:0,billed:0,routeRevision:-1,wait:0,angle:0,thirst:25,bladder:20,confidence:.85,attempts:0,urgency:1,amenity:null,seat:null,bed:null,arrived:s.time,careStep:0,careHistory:[],supplyReserved:false,roomWait:0,...extra};s.patients.push(p);return p;
 }
 test('the previous hospital save migrates in place without losing rooms, patients or finances',()=>{
  const s=hospital();M.setOpen(s,true);run(s,35);const old=JSON.parse(JSON.stringify(s));
@@ -135,4 +135,67 @@ test('hospital ratings provide one-time goals and retain all development details
  const s=hospital();s.cured=30;s.reputation=70;const cash=s.cash;M.tick(s,.1);assert.equal(s.rating,1);assert.equal(s.cash,cash+8000);M.tick(s,.1);assert.equal(s.cash,cash+8000);
  s.cured=70;s.reputation=80;s.research.completed=['protocols','engineering'];s.staff[0].rank=1;s.staff[1].rank=1;M.tick(s,.1);assert.equal(s.rating,2);const copy=M.restoreSave(JSON.parse(JSON.stringify(s)));assert.ok(copy);assert.deepEqual(copy,s);
  copy.research.completed.push('unreal-project');assert.equal(M.validSave(copy),false);
+});
+
+test('furniture relocation is free, preserves identity, rotates, and rejects blocked or occupied placements atomically',()=>{
+ const s=hospital(),r=s.rooms[0],item=M.roomItems(s,r).find(i=>i.type==='exam'),cash=s.cash,id=item.id;
+ let destination;for(let z=r.z;z<r.z+r.h;z++)for(let x=r.x;x<r.x+r.w;x++)if(M.canMoveItem(s,id,x,z,1).ok)destination={x,z};
+ assert.ok(destination);assert.ok(M.moveItem(s,id,destination.x,destination.z,1).ok);assert.equal(item.id,id);assert.equal(item.rotation,1);assert.equal(s.cash,cash);assert.ok(M.interiorAccessible(s,r));
+ const snapshot=structuredClone(s);assert.equal(M.moveItem(s,id,r.door.x,r.door.z).ok,false);assert.deepEqual(s,snapshot);
+ visitor(s,{room:r.id,state:'enter'});assert.equal(M.moveItem(s,id,3,3).ok,false);
+});
+test('room extensions preserve furnishings, staff and level while charging only extra tiles and construction',()=>{
+ const s=hospital(),r=s.rooms[0],before=structuredClone(r),items=structuredClone(M.roomItems(s,r)),cash=s.cash;
+ const check=M.canExpandRoom(s,r.id,2,2,7,7);assert.ok(check.ok,check.error);assert.equal(check.cost,(49-25)*M.ROOM_TYPES.gp.tile+300);
+ assert.ok(M.expandRoom(s,r.id,2,2,7,7).ok);assert.equal(s.cash,cash-check.cost);assert.equal(r.id,before.id);assert.equal(r.staff,before.staff);assert.equal(r.level,before.level);assert.deepEqual(M.roomItems(s,r),items);assert.ok(M.pathfind(s,M.ENTRY,r.door));
+ const snapshot=structuredClone(s);assert.equal(M.expandRoom(s,r.id,10,2,7,7).ok,false);assert.equal(M.expandRoom(s,r.id,3,3,4,4).ok,false);assert.deepEqual(s,snapshot);
+ visitor(s,{room:r.id,state:'service'});assert.equal(M.expandRoom(s,r.id,1,1,9,9).ok,false);
+});
+test('stock orders respect capacity, charge once, deliver on time, and persist while travelling',()=>{
+ const s=M.fresh();s.stock.medicine=10;const cash=s.cash;assert.ok(M.orderSupplies(s,'medicine').ok);assert.equal(s.cash,cash-180);assert.equal(s.stock.medicine,10);assert.equal(s.deliveries.length,1);
+ assert.ok(M.orderSupplies(s,'medicine').ok);assert.equal(s.deliveries[1].quantity,2);assert.equal(M.orderSupplies(s,'medicine').ok,false);
+ run(s,44);assert.equal(s.stock.medicine,10);const restored=M.restoreSave(JSON.parse(JSON.stringify(s)));assert.ok(restored);run(restored,2);assert.equal(restored.stock.medicine,24);assert.equal(restored.deliveries.length,0);
+ const broken=structuredClone(s);broken.stock.linen=-1;assert.equal(M.restoreSave(broken),null);
+});
+test('storage shelves increase capacity and unlock bulk prices; express deliveries arrive earlier',()=>{
+ const s=M.fresh(),r=room(s,'store',3,3);assert.equal(M.storageShelves(s),1);assert.equal(M.stockCapacity(s,'medicine'),56);s.stock.medicine=0;
+ const quote=M.supplyQuote(s,'medicine');assert.equal(quote.quantity,24);assert.equal(quote.cost,306);assert.ok(M.orderSupplies(s,'medicine').ok);const d=s.deliveries[0];assert.ok(M.rushDelivery(s,d.id).ok);assert.equal(M.rushDelivery(s,d.id).ok,false);run(s,9);assert.equal(s.stock.medicine,24);assert.equal(s.deliveries.length,0);
+ M.toggleRoom(s,r.id);assert.equal(M.stockCapacity(s,'medicine'),24);assert.equal(M.supplyQuote(s,'medicine').quantity,0);
+});
+test('automatic ordering responds to clinical demand and funds, while manual mode waits for an order',()=>{
+ const s=hospital();s.stock.medicine=0;s.cash=0;M.setOpen(s,true);M.tick(s,.1);assert.equal(s.deliveries.length,0);assert.ok(s.log.some(l=>l.title==='Supply budget warning'));
+ s.cash=1000;M.tick(s,.1);assert.equal(s.deliveries.length,1);assert.equal(s.deliveries[0].type,'medicine');M.tick(s,.1);assert.equal(s.deliveries.length,1);
+ const manual=hospital();M.setSupplyMode(manual,'manual');manual.stock.medicine=0;M.setOpen(manual,true);run(manual,1);assert.equal(manual.deliveries.length,0);
+});
+test('the last dose finishes an admitted case and empty stock keeps the next patient queued',()=>{
+ const s=hospital();run(s,30);M.setSupplyMode(s,'manual');s.stock.medicine=1;const r=s.rooms.find(r=>r.type==='pharmacy');
+ const p=visitor(s,{stage:'pharmacy',room:r.id,diagnosed:true,confidence:.99}),waiting=visitor(s,{stage:'pharmacy',room:r.id,diagnosed:true});M.tick(s,.1);assert.equal(p.state,'enter');assert.equal(s.stock.medicine,0);assert.equal(waiting.state,'queue');assert.equal(M.roomStatus(s,r).ready,true);assert.equal(M.roomStatus(s,r).intake,false);
+ p.state='service';p.progress=100;p.x=20.5;p.z=5.5;s.seed=1;M.tick(s,.1);assert.equal(p.state,'exit');assert.equal(s.cured,1);assert.equal(waiting.state,'queue');assert.equal(s.stock.medicine,0);assert.ok(M.orderSupplies(s,'medicine',true).ok);run(s,9);assert.notEqual(waiting.state,'queue');
+});
+test('new departments unlock at their cure milestones and follow-up care counts a cure only after the final department',()=>{
+ const s=hospital();assert.equal(M.canBuild(s,'psychiatry',8,10,4,4).ok,false);s.cured=10;const psych=room(s,'psychiatry',8,10);M.hire(s,'doctor');assert.equal(M.canBuild(s,'physio',8,16,4,4).ok,false);s.cured=22;const physio=room(s,'physio',8,16);M.hire(s,'specialist');run(s,30);assert.ok(M.roomStatus(s,psych).ready);assert.ok(M.roomStatus(s,physio).ready);
+ const p=visitor(s,{condition:7,stage:'psychiatry',room:psych.id,state:'service',progress:100,diagnosed:true,confidence:.99}),cured=s.cured;s.seed=1;M.tick(s,.1);assert.equal(s.cured,cured);assert.equal(p.careStep,1);assert.equal(p.stage,'pharmacy');assert.deepEqual(p.careHistory.map(h=>h.stage),['psychiatry']);assert.ok(M.restoreSave(JSON.parse(JSON.stringify(s))));
+ const pharmacy=s.rooms.find(r=>r.type==='pharmacy');p.room=pharmacy.id;p.stage='pharmacy';p.state='service';p.progress=100;s.seed=1;M.tick(s,.1);assert.equal(s.cured,cured+1);assert.equal(p.state,'exit');assert.deepEqual(p.careHistory.map(h=>h.stage),['psychiatry','pharmacy']);assert.ok(M.validSave(s));
+});
+test('a failed follow-up retains previous completed care when returning for a second opinion',()=>{
+ const s=hospital();run(s,30);const r=s.rooms.find(r=>r.type==='ward');const p=visitor(s,{condition:9,careStep:1,careHistory:[{stage:'physio',time:1,fee:2600}],stage:'ward',room:r.id,state:'service',progress:100,diagnosed:true,confidence:.55});
+ while(true){const seed=(Math.imul(s.seed,1664525)+1013904223)>>>0;if(seed/4294967296>.99)break;s.seed=seed;}M.tick(s,.1);assert.equal(p.stage,'gp');assert.equal(p.careStep,1);assert.equal(p.careHistory.length,1);assert.equal(s.cured,0);
+});
+test('spare staff cover training without taking permanent ownership and hand back after the course',()=>{
+ const s=hospital(),r=s.rooms[0],primary=s.staff.find(a=>a.id===r.staff);run(s,30);const spare=M.hire(s,'doctor').staff;assert.equal(spare.room,null);assert.ok(M.trainStaff(s,primary.id).ok);run(s,20);
+ assert.equal(r.staff,primary.id);assert.equal(r.cover,spare.id);assert.equal(spare.covering,r.id);assert.equal(M.workingStaff(s,r),spare);assert.equal(M.roomStatus(s,r).ready,true);assert.equal(M.trainStaff(s,spare.id).ok,false);assert.ok(M.restoreSave(JSON.parse(JSON.stringify(s))));
+ run(s,70);assert.equal(primary.training,null);assert.equal(r.cover,null);assert.equal(spare.covering,null);assert.equal(r.staff,primary.id);assert.equal(M.workingStaff(s,r),primary);
+});
+test('department statistics measure actual waiting and work, and existing 2.1 saves migrate operations in place',()=>{
+ const s=hospital();M.setOpen(s,true);run(s,150);const r=s.rooms[0],m=M.roomMetrics(s,r);assert.ok(r.started>0);assert.ok(r.busyTime>0);assert.ok(m.utilisation>0&&m.utilisation<=100);assert.ok(m.averageWait>=0);assert.ok(m.casesPerDay>0);
+ const old=structuredClone(s);for(const k of ['operationsVersion','stock','deliveries','supplyMode','supplySequence','lastDelivery','deliveryNotice'])delete old[k];for(const r of old.rooms)for(const k of ['cover','openedAt','busyTime','waitTotal','started'])delete r[k];for(const p of old.patients)for(const k of ['careStep','careHistory','supplyReserved','roomWait'])delete p[k];
+ const restored=M.restoreSave(old);assert.ok(restored);assert.equal(restored.cash,s.cash);assert.equal(restored.rooms.length,s.rooms.length);assert.equal(restored.stock.medicine,24);assert.ok(M.validSave(restored));run(restored,5);assert.ok(M.validSave(restored));
+});
+test('firing a permanent provider promotes their temporary cover into the vacant assignment',()=>{
+ const s=hospital(),r=s.rooms[0],primary=s.staff.find(a=>a.id===r.staff),spare=M.hire(s,'doctor').staff;run(s,30);assert.ok(M.trainStaff(s,primary.id).ok);run(s,15);assert.equal(r.cover,spare.id);
+ assert.ok(M.fire(s,primary.id).ok);assert.equal(r.staff,spare.id);assert.equal(r.cover,null);assert.equal(spare.covering,null);assert.equal(spare.room,r.id);assert.ok(M.trainStaff(s,spare.id).ok);
+});
+test('a rehabilitation referral physically completes diagnosis, physiotherapy and ward aftercare',()=>{
+ const s=hospital();s.cured=22;room(s,'physio',8,16);M.hire(s,'specialist');run(s,30);const before=s.cured,p=visitor(s,{condition:9,confidence:.99});run(s,150);
+ assert.equal(s.cured,before+1);assert.deepEqual(p.careHistory.map(h=>h.stage),['physio','ward']);assert.equal(s.stock.linen,22);assert.ok(s.rooms.find(r=>r.type==='physio').busyTime>0);assert.ok(M.validSave(s));
 });

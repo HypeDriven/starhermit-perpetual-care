@@ -1,6 +1,6 @@
 {
   "name": "perpetual-care",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "check": "node tools/package-web.mjs --check",
     "package": "node tools/package-web.mjs",
     "test:browser": "node tools/browser-play.mjs .",
-    "test:management": "node tools/browser-play.mjs . /tmp/perpetual-care-management --depth"
+    "test:management": "node tools/browser-play.mjs . /tmp/perpetual-care-management --depth",
+    "test:operations": "node tools/browser-play.mjs . /tmp/perpetual-care-operations --operations"
   },
   "license": "SEE LICENSE IN LICENSE"
 }

@@ -1,0 +1,136 @@
+# viewport 390x844@1
+frames 15
+expect PERPETUAL CARE
+touch =Rooms
+frames 4
+touch GP office
+frames 4
+touch 175 238
+touch 175 274
+frames 5
+expect Build room
+touch Build room
+frames 8
+touch 175 238
+frames 5
+touch 182 243
+frames 5
+touch =Staff
+frames 4
+touch Hire Doctor
+frames 5
+touch =Rooms
+frames 4
+touch Pharmacy
+frames 4
+touch 274 306
+touch 274 333
+frames 5
+expect Build room
+touch Build room
+frames 8
+touch 274 306
+frames 5
+touch =Staff
+frames 4
+touch Hire Nurse
+frames 5
+touch =Rooms
+frames 4
+touch Ward
+frames 4
+touch 234 333
+touch 234 369
+frames 5
+expect Build room
+touch Build room
+frames 8
+touch 234 333
+frames 5
+touch =Staff
+frames 4
+touch Hire Nurse
+frames 5
+key Escape 1
+frames 4
+touch 175 265
+frames 5
+touch =Manage
+frames 4
+touch =Rooms
+frames 4
+touch Expand room
+frames 4
+touch 175 229
+frames 5
+touch 175 283
+frames 5
+frames 5
+expect Expand $
+touch Expand $
+frames 5
+expect Room expanded.
+save expanded
+touch =Manage
+frames 4
+touch =Rooms
+frames 4
+touch Rearrange
+frames 4
+touch 175 238
+frames 5
+key KeyR 1
+touch 169 252
+frames 5
+expect Furnishing moved
+save rearranged
+key Escape 1
+frames 4
+touch =Manage
+frames 4
+touch =Supplies
+frames 4
+expect Keep the cupboards ready.
+touch Manual
+frames 4
+touch Automatic
+frames 4
+save supplies
+touch Build a store room
+frames 4
+touch 188 364
+frames 5
+touch 188 391
+frames 5
+frames 5
+touch Build room
+frames 5
+touch 188 364
+frames 5
+key Escape 1
+frames 4
+touch =Manage
+frames 4
+touch =Supplies
+frames 4
+touch Order 24
+frames 4
+expect Delivery ordered
+save delivery-ordered
+touch =Back to hospital
+frames 4
+touch Flow
+frames 4
+expect Flow on
+touch =Hospital
+frames 4
+save furnished
+touch Open hospital
+frames 10
+key KeyF 1
+key KeyF 1
+frames 1200
+save running
+key Space 1
+frames 5
+save final

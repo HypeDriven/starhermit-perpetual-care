@@ -17,7 +17,7 @@ const config=JSON.parse(index.match(/id="starhermit-config">([^<]+)/)[1]);
 const entry=index.match(/src="([^"]+starhermit\.js)"/)[1];
 const manifest={...config.manifest,url:new URL('manifest.json',entry).href};
 const settingsOnly=process.argv.includes('--settings');
-const depth=process.argv.includes('--depth');
+const depth=process.argv.includes('--depth'),operations=process.argv.includes('--operations');
 const phoneOnly=process.argv.includes('--phone-only');
 let script='',restore=false,restoreScript='';
 const types={'.js':'text/javascript','.json':'application/json','.html':'text/html','.glb':'model/gltf-binary','.ogg':'audio/ogg','.jpg':'image/jpeg','.png':'image/png','.ico':'image/x-icon'};
@@ -25,7 +25,7 @@ const server=createServer((req,res)=>{
  const path=new URL(req.url,'http://x').pathname;
  if(path==='/__play.html'){
   const data=JSON.stringify({entry,manifest,runtime:{play:restore?restoreScript:script,...(settingsOnly?{}:{quality:'molecular'}),ephemeral:false}}).replaceAll('<','\\u003c');
-  res.writeHead(200,{'content-type':'text/html'}).end(`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden}canvas{width:100%;height:100%;display:block}</style></head><body><canvas></canvas><script type="application/json" id="check">${data}</script><script type="module" src="/__driver.mjs"></script></body></html>`);return;
+  res.writeHead(200,{'content-type':'text/html'}).end(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden}canvas{width:100%;height:100%;display:block}</style></head><body><canvas></canvas><script type="application/json" id="check">${data}</script><script type="module" src="/__driver.mjs"></script></body></html>`);return;
  }
  if(path==='/__driver.mjs'){res.writeHead(200,{'content-type':'text/javascript'}).end("const options=JSON.parse(document.querySelector('#check').textContent);const {start}=await import(options.entry);start({manifest:options.manifest,package:new URL('./',location.href),canvas:document.querySelector('canvas'),runtime:options.runtime}).catch(e=>console.error(e));");return;}
  if(path==='/api/v1/time'){res.writeHead(200,{'content-type':'application/json'}).end(JSON.stringify({serverTime:Date.now(),serverTimeIso:new Date().toISOString()}));return;}
@@ -38,9 +38,10 @@ const {browser,close,gpu}=await launchChrome(chromium);console.log('Browser play
 let failed=false;
 try{
  for(const name of settingsOnly?['desktop']:phoneOnly?['phone']:['desktop','phone']){
-  restore=false;script=readFileSync(join(root,'tests',name==='phone'?'phone.play':depth?'management.play':'publish.play'),'utf8');
+  restore=false;script=readFileSync(join(root,'tests',operations?(name==='phone'?'operations-phone.play':'operations.play'):name==='phone'?'phone.play':depth?'management.play':'publish.play'),'utf8');
   restoreScript='frames 20\nexpect A healthy balance.\nexpect RX\nexpect WD\nexpect Play\n';
-  if(name==='phone')restoreScript+='touch =Manage\nframes 4\ntouch =Research\nframes 4\nexpect In progress\ntouch =People\nframes 4\nexpect $528/day\nsave restored-management\ntouch =Back to hospital\nframes 4\n';
+  if(operations){const tap=name==='phone'?'touch':'click';restoreScript+=`${tap} =Manage\nframes 4\n${tap} =Rooms\nframes 4\n${tap} =Inspect\nframes 4\nexpect 7 × 7 tiles\n${tap} =Manage\nframes 4\n${tap} =Supplies\nframes 4\nexpect / 56\n${tap} =Back to hospital\nframes 4\n`;}
+  else if(name==='phone')restoreScript+='touch =Manage\nframes 4\ntouch =Research\nframes 4\nexpect In progress\ntouch =People\nframes 4\nexpect $528/day\nsave restored-management\ntouch =Back to hospital\nframes 4\n';
   else if(depth)restoreScript+='click =Manage\nframes 4\nclick =People\nframes 4\nexpect Level 2\nclick =Research\nframes 4\nexpect Complete\nsave restored-management\nclick =Back to hospital\nframes 4\n';
   restoreScript+='save restored\n';
   if(settingsOnly)script='frames 30\nclick =Options\nframes 10\nexpect Graphics quality\nsave quality-menu\n';

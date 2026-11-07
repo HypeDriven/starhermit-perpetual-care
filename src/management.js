@@ -1,6 +1,7 @@
 // Persistent hospital policy, professional development, research and contracts.
 // Navigation and clinical flow live in model.js; this module changes only data.
 import {ROOM_TYPES,EQUIPMENT,STAFF_TYPES,CONDITIONS} from './catalogue.js';
+import {initializeOperations,operationsSaveValid} from './operations.js';
 
 export const RESEARCH={
  protocols:{name:'Diagnostic protocols',cost:2200,work:90,description:'+7% diagnostic confidence throughout the hospital.'},
@@ -33,7 +34,7 @@ export function initializeDepth(s){
  const traits=Object.keys(TRAITS);
  for(const a of s.staff){a.trait??=traits[a.id%traits.length];a.rank??=0;a.experience??=0;a.morale??=85;a.payBonus??=0;a.training??=null;}
  for(const p of s.patients){p.thirst??=25;p.bladder??=20;p.confidence??=0;p.attempts??=0;p.urgency??=1;p.amenity??=null;p.seat??=null;p.bed??=null;p.arrived??=s.time;}
- return s;
+ return initializeOperations(s);
 }
 export const researched=(s,id)=>s.research.completed.includes(id);
 export const wage=a=>Math.round(STAFF_TYPES[a.type].wage*(1+a.rank*.15+a.payBonus));
@@ -68,6 +69,7 @@ export function toggleRoom(s,id){const r=s.rooms.find(r=>r.id===id);if(!r)return
 export function trainingCost(a){return 900+700*(a.rank||0);}
 export function trainStaff(s,id){
  const a=s.staff.find(a=>a.id===id);if(!a)return fail('Choose an employee.');
+ if(a.covering)return fail('Finish temporary cover before starting a course.');
  if(a.training)return fail('Training is already in progress.');if(a.rank>=3)return fail('This employee has completed all training.');
  if(s.patients.some(p=>p.room===a.room&&['enter','service'].includes(p.state)))return fail('Let this employee finish their current patient first.');
  const cost=trainingCost(a);if(s.cash<cost)return fail('Training costs '+price(cost)+'.');
@@ -77,6 +79,7 @@ export function raisePay(s,id){const a=s.staff.find(a=>a.id===id);if(!a)return f
 export function assignEmployee(s,id,roomId){
  const a=s.staff.find(a=>a.id===id),r=s.rooms.find(r=>r.id===roomId);
  if(!a||!r||ROOM_TYPES[r.type].staff!==a.type)return fail('Choose a room matching this employee’s role.');
+ if(a.covering)return fail('Finish temporary cover before changing assignments.');
  const current=s.rooms.find(r=>r.id===a.room);
  if(s.patients.some(p=>(p.room===r.id||p.room===current?.id)&&['enter','service'].includes(p.state)))return fail('Wait until both employees have finished their patients.');
  const other=s.staff.find(b=>b.id===r.staff);
@@ -123,5 +126,5 @@ export function depthSaveValid(s){
  if(!s.research||!Array.isArray(s.research.completed)||s.research.completed.some(id=>!RESEARCH[id])||new Set(s.research.completed).size!==s.research.completed.length)return false;
  const active=s.research.active;if(active&&(!RESEARCH[active.id]||!Number.isFinite(active.progress)||active.progress<0||s.research.completed.includes(active.id)))return false;
  if(!Array.isArray(s.litter)||s.litter.length>80||!s.litter.every(l=>Number.isInteger(l.id)&&Number.isFinite(l.x)&&Number.isFinite(l.z)))return false;
- return Number.isInteger(s.rating)&&s.rating>=0&&s.rating<=3&&s.staff.every(a=>TRAITS[a.trait]&&Number.isInteger(a.rank)&&a.rank>=0&&a.rank<=3&&Number.isFinite(a.morale)&&Number.isFinite(a.payBonus)&&(!a.training||Number.isFinite(a.training.remaining)&&Number.isFinite(a.training.total)))&&s.patients.every(p=>[p.thirst,p.bladder,p.confidence,p.attempts].every(Number.isFinite))&&(!s.contract||['grant','inspection','emergency'].includes(s.contract.id)&&Number.isFinite(s.contract.deadline));
+ return Number.isInteger(s.rating)&&s.rating>=0&&s.rating<=3&&s.staff.every(a=>TRAITS[a.trait]&&Number.isInteger(a.rank)&&a.rank>=0&&a.rank<=3&&Number.isFinite(a.morale)&&Number.isFinite(a.payBonus)&&(!a.training||Number.isFinite(a.training.remaining)&&Number.isFinite(a.training.total)))&&s.patients.every(p=>[p.thirst,p.bladder,p.confidence,p.attempts].every(Number.isFinite))&&(!s.contract||['grant','inspection','emergency'].includes(s.contract.id)&&Number.isFinite(s.contract.deadline))&&operationsSaveValid(s);
 }
