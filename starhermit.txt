@@ -1,0 +1,16 @@
+name=Perpetual Care
+description=Your recovery is our recurring revenue. A darkly comic hospital management game.
+launch=index.html
+engine.api=1
+engine.entry=src/main.js
+engine.version=1.38.0
+engine.minor=38
+engine.capabilities=storage
+control.pause=Space | Pause or resume the shift
+control.speed=KeyF | Change simulation speed
+control.next=Tab | Select next patient
+control.treat=Digit1 | Stabilize selected patient
+control.observe=Digit2 | Observe selected patient
+control.recover=Digit3 | Recovery treatment
+control.help=KeyH | Open management handbook
+cache..=0
