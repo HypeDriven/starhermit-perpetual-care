@@ -1,0 +1,54 @@
+{
+  "game": {
+    "id": "825eaedf-a936-4e1e-a4d3-74f8ef652d61",
+    "repoUrl": "upload:bd60a705d5284f36b5d988abf3290d4f",
+    "ownerLogin": "",
+    "repoName": "",
+    "displayName": "Perpetual Care",
+    "launchPath": "index.html",
+    "serverScriptPath": null,
+    "gameSlug": "825eaedf-a936-4e1e-a4d3-74f8ef652d61",
+    "isVerifiedOwner": false,
+    "metadataSource": "manual",
+    "createdAt": "2026-11-07T07:45:18.160632+00:00",
+    "coverArtSource": "upload",
+    "coverArtUpdatedAt": "2026-11-07T07:46:07.442701+00:00",
+    "submittedByUserId": "2712e04e-461b-4d23-81ae-e40b429128a8",
+    "submittedByUsername": "starhermit",
+    "hosting": {
+      "hostingEnabled": true,
+      "hostedUrl": "https://825eaedf-a936-4e1e-a4d3-74f8ef652d61.starhermit.com/index.html",
+      "deployStatus": "live",
+      "pinnedCommitSha": null,
+      "deployedCommitSha": null,
+      "deployError": null,
+      "deployedAt": "2026-11-07T07:45:18.168067+00:00",
+      "externalLaunchUrl": null,
+      "engineVersion": "1.38.0",
+      "deployWarning": null
+    },
+    "description": "Your recovery is our recurring revenue. A darkly comic hospital management game.",
+    "releaseNotesUpdatedAt": null,
+    "serverRuntime": null,
+    "bannerArtSource": null,
+    "bannerArtUpdatedAt": null,
+    "tags": [],
+    "links": [],
+    "isDisabled": false
+  },
+  "publishedAt": "2026-11-07T07:45:18.263Z",
+  "sourceCommit": "0bf51a3214f709e1084fe615a719ab12cc8b2621",
+  "bytesReceived": 364432,
+  "archiveSha256": "8e38bb02353d35e0a5976392a24158db55386657ce65f506201c28f483a6b1d3",
+  "result": {
+    "bytesReceived": 364432
+  },
+  "validation": {
+    "modelTests": 8,
+    "engineCheck": "120 headless frames passed",
+    "browser": "Live desktop and phone: running, no errors",
+    "native": "Desktop and phone gameplay and Options scripts passed; quantum and infinite render checks passed",
+    "cover": "Public library cover matches cover.jpg byte-for-byte",
+    "favicon": "Live favicon.ico matches local bytes"
+  }
+}
