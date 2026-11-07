@@ -22,7 +22,7 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-07T07:45:18.168067+00:00",
+      "deployedAt": "2026-11-07T07:47:03.833431+00:00",
       "externalLaunchUrl": null,
       "engineVersion": "1.38.0",
       "deployWarning": null
@@ -36,12 +36,19 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-07T07:45:18.263Z",
-  "sourceCommit": "0bf51a3214f709e1084fe615a719ab12cc8b2621",
-  "bytesReceived": 364432,
-  "archiveSha256": "8e38bb02353d35e0a5976392a24158db55386657ce65f506201c28f483a6b1d3",
+  "publishedAt": "2026-11-07T07:47:03.917Z",
+  "sourceCommit": "e6e58932b7f804bc481d3e207156cf2fe109f653",
+  "bytesReceived": 366674,
+  "archiveSha256": "2ec2881fe6e92d3ab44deee863c9fc74fff00234dceea74221d13086f259dd42",
   "result": {
-    "bytesReceived": 364432
+    "clientPublished": true,
+    "serverImageLoaded": false,
+    "imageDigest": null,
+    "bytesReceived": 366674,
+    "mode": "replace",
+    "filesRemoved": 0,
+    "engineVersion": "1.38.0",
+    "deployWarning": null
   },
   "validation": {
     "modelTests": 8,
