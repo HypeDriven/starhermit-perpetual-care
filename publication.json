@@ -22,12 +22,12 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-07T12:26:04.431822+00:00",
+      "deployedAt": "2026-11-07T12:50:52.366546+00:00",
       "externalLaunchUrl": null,
       "engineVersion": "1.38.0",
       "deployWarning": null
     },
-    "description": "Build and run your own hospital. Furnish rooms, develop staff, research better care, meet patient needs and take on emergency referrals on the way to three stars.",
+    "description": "Build and run your own hospital. Expand and furnish departments, manage supplies and staff, research better care and guide patients through diagnosis, treatment and follow-up on the way to three stars.",
     "releaseNotesUpdatedAt": null,
     "serverRuntime": null,
     "bannerArtSource": null,
@@ -36,27 +36,28 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-07T12:26:04.517Z",
-  "sourceCommit": "b20d9c0cdc896764e411f8f8fb552c5fe724d0c9",
-  "bytesReceived": 4463276,
-  "archiveSha256": "333f7ac29c7fa499dfd53152b5a7342b3ebc81a48296d8d6ead6ed05e3c4810e",
+  "publishedAt": "2026-11-07T12:50:52.450Z",
+  "sourceCommit": "ae3606de252910faf9cc0d9e3f2fd0af5b56bce0",
+  "bytesReceived": 4470216,
+  "archiveSha256": "ff732db3e8c288dc1591863c6a3294a239582a8d79fed941e83543c627d2690c",
   "result": {
     "clientPublished": true,
     "serverImageLoaded": false,
     "imageDigest": null,
-    "bytesReceived": 4463276,
+    "bytesReceived": 4470216,
     "mode": "replace",
     "filesRemoved": 0,
     "engineVersion": "1.38.0",
     "deployWarning": null
   },
   "validation": {
-    "modelTests": 24,
-    "engineCheck": "Seven modules link; package passes 120 native headless frames with no warnings.",
-    "native": "4,178-frame management playthrough passed at quantum and infinite; molecular management and cellular touch flows also passed.",
-    "browser": "Desktop research, staff training, room refits, policies and contract playthrough passed. Phone management controls and durable research/staff-pay restoration passed.",
-    "saveCompatibility": "Version 2.0 hospitals migrate in place without losing finances, rooms, staff or patients; expanded research and staff state survive browser reload.",
-    "live": "Published source modules and manifest match local bytes. Public desktop and phone load with no console errors or warnings."
+    "modelTests": 36,
+    "engineCheck": "Eight modules link; final web package passes 120 native headless frames with no warnings.",
+    "native": "Desktop expansion, furniture relocation, storage construction, supply ordering and flow playthrough passes at molecular; the touch flow passes at cellular. New psychiatry, rehabilitation and storage props render at quantum.",
+    "browser": "Final desktop and phone operations playthroughs pass without console errors or warnings. Reload checks confirm the retained 7x7 expanded GP office and medicine storage capacity of 56.",
+    "saveCompatibility": "Version 2.0 and 2.1 hospitals migrate in place. Follow-up care, temporary cover, deliveries and department statistics survive save/load.",
+    "longSimulation": "Seven-day equipped hospital simulation completes care in every clinical department, automatically replenishes supplies, has no walkouts or deaths, and remains a valid save.",
+    "live": "Published source modules, file index and manifest match local bytes. Public desktop and phone load in the real browser runtime without console errors or warnings."
   },
-  "version": "2.1.0"
+  "version": "2.2.0"
 }
