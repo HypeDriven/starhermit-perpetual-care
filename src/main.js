@@ -1,4 +1,4 @@
-import { frame, onStart, onUpdate, onQuit, onSuspend } from 'starhermit:engine';
+import { frame, onStart, onUpdate, onQuit, onSuspend, openMenu } from 'starhermit:engine';
 import * as draw from 'starhermit:draw';
 import { onAction, onGesture, pointer, setCursor } from 'starhermit:input';
 import { storage } from 'starhermit:storage';
@@ -59,6 +59,7 @@ function header(){
  const nx=mobile?26:493,nw=mobile?(W-68)/3:106;
  ['Hospital','Patients','Corporate'].forEach((s,i)=>{const x=nx+i*(nw+8);const active=tab===s.toLowerCase();button(s,x,mobile?80:22,nw,38,()=>{tab=s.toLowerCase();},active?'selected':'plain');});
  button('?',W-65,22,38,38,()=>{help=true;});
+ button('Options',W-163,22,90,38,openMenu);
 }
 function metrics(){
  const y=mobile?145:106, gap=mobile?12:20,margin=26,w=mobile?(W-64)/2:(W-margin*2-gap*3)/4;
@@ -195,10 +196,10 @@ function overlays(){
  else if(state.ended){buttons=[];const e=state.ended,{x,y,w}=modalBase(e.title,e.win?'QUARTERLY EARNINGS CALL':'AN UNSCHEDULED BOARD MEETING',400,630);wrap(e.body,x+30,y+114,w-60,15,C.muted,23);text(amount(state.revenue),x+30,y+205,40,C.green,500,'serif');label('LIFETIME BILLING',x+30,y+253);text(state.deaths+' deaths  ·  '+state.discharges+' discharges  ·  '+state.audits+' audits',x+30,y+280,13,C.muted);button('Accept a new management position  →',x+30,y+328,w-60,43,reset,'primary');}
 }
 onUpdate(dt=>{
- clock+=dt;toastTime=Math.max(0,toastTime-dt);saveClock+=dt;
- if(!paused&&!help&&!confirmReset&&!state.ended&&!state.event){tick(state,Math.min(dt,.12)*speed);}
- if(saveClock>6){save();saveClock=0;}
  const f=frame();if(f.width<=0||f.height<=0)return;
+ clock+=dt;toastTime=Math.max(0,toastTime-dt);saveClock+=dt;
+ if(f.focused&&!f.overlayOpen&&!paused&&!help&&!confirmReset&&!state.ended&&!state.event){tick(state,Math.min(dt,.12)*speed);}
+ if(saveClock>6){save();saveClock=0;}
  mobile=f.width/f.height<1.25;scale=Math.min(f.width/(mobile?480:1440),f.height/(mobile?1000:1000));W=f.width/scale;H=f.height/scale;top=mobile?363:236;
  const p=pointer();mx=p?p.x/scale:-1;my=p?p.y/scale:-1;buttons=[];bedHits=[];rect(0,0,W,H,C.bg);header();metrics();
  if(!mobile){

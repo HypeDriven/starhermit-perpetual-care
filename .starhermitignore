@@ -1,3 +1,6 @@
 tests/
 README.md
 dist/
+tools/
+publication.json
+coverart.png

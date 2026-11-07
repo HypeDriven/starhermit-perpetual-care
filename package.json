@@ -1,1 +1,10 @@
-{"name":"perpetual-care","private":true,"type":"module","scripts":{"test":"node --test tests/model.test.mjs"}}
+{
+  "name": "perpetual-care",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/model.test.mjs",
+    "check": "node tools/package-web.mjs --check",
+    "package": "node tools/package-web.mjs"
+  }
+}

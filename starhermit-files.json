@@ -1,9 +1,15 @@
 {
   "files": {
-    "index.html": {"sha256": "0ffe024c2e0bd872c06eb639cdacc7f08c04bfdedef9533f2c5e0fd229a107e8", "size": 1940},
-    "src/main.js": {"sha256": "d7d6f21d61077732cc78b5e7063c818abd3649b6084fed054f64d465077f220b", "size": 25789},
+    "apple-touch-icon.png": {"sha256": "7c3078fc7dee187912130e14f44ed39e728fd572e9439d9708f4eb89551e4b37", "size": 9637},
+    "cover.jpg": {"sha256": "81608db18f4bc457014d1eb1c2e283b93d59d57117be73e5c290708d5d534862", "size": 321186},
+    "favicon.ico": {"sha256": "5769b6e11e107bd04e46cfdbe24078b5c879dbe55c97742fc9150fbc90937684", "size": 8190},
+    "favicon.png": {"sha256": "9a7b80264ca4b1def505f8f84ac20d5c2ada61efac5ac23ad69f176c82ad89d9", "size": 6351},
+    "favicon.svg": {"sha256": "8fee6701c617f9a56a6ac38f458d47a2156cf303ee4f1d04a017c379d49a14c3", "size": 331},
+    "index.html": {"sha256": "5adb62cc896d896fa7face8dce760c7775a295245118008572d1a3fc1658b7a4", "size": 1945},
+    "src/main.js": {"sha256": "6630fc37f7a28cbd48de258f573a69466cdd97215b4d9e589b9536a2d1ea2c94", "size": 25870},
     "src/model.js": {"sha256": "5151ce0efe935e9a3983c4cf6c3c8f2117e4df089d2706573c98d40fb997a99d", "size": 8850},
-    "starhermit.txt": {"sha256": "c618fa4c19cb6e29a3929197d9ac746bc94f0d25a1122d63f058d5035beb72c3", "size": 566}
+    "starhermit.txt": {"sha256": "0db4bd0a7676bcd19be1c3bf0c1b637d256ffcecc3774106e3897c8718f70839", "size": 625}
   },
+  "excluded": ["README.md", "coverart.png", "package.json", "tests/", "tools/"],
   "format": 1
 }

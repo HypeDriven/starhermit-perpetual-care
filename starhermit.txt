@@ -1,5 +1,7 @@
 name=Perpetual Care
 description=Your recovery is our recurring revenue. A darkly comic hospital management game.
+owner=2712e04e-461b-4d23-81ae-e40b429128a8
+cover=cover.jpg
 launch=index.html
 engine.api=1
 engine.entry=src/main.js

@@ -1,0 +1,29 @@
+# viewport 1440x1000@1
+frames 10
+expect PERPETUAL
+click Resume
+frames 60
+expect Pause
+key Space 1
+frames 5
+expect Resume
+click =Patients
+frames 5
+expect THE REVENUE ROSTER
+click =Corporate
+frames 5
+expect CORPORATE DEVELOPMENT
+click =Hospital
+frames 5
+click =Options
+frames 10
+expect Graphics
+save options
+click =Graphics
+frames 5
+expect Frame rate limit
+save graphics
+key Escape 1
+frames 5
+expect LIVE WARD OVERVIEW
+save hospital
