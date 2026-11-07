@@ -1,9 +1,11 @@
 {
   "files": {
+    "LICENSE": {"sha256": "b3a5bbed1fbb367e8caf5c2fe55f4d99dbece9d8452437d1aee542cbb02b4a47", "size": 5418},
     "index.html": {"sha256": "0ffe024c2e0bd872c06eb639cdacc7f08c04bfdedef9533f2c5e0fd229a107e8", "size": 1940},
     "src/main.js": {"sha256": "d7d6f21d61077732cc78b5e7063c818abd3649b6084fed054f64d465077f220b", "size": 25789},
     "src/model.js": {"sha256": "5151ce0efe935e9a3983c4cf6c3c8f2117e4df089d2706573c98d40fb997a99d", "size": 8850},
     "starhermit.txt": {"sha256": "c618fa4c19cb6e29a3929197d9ac746bc94f0d25a1122d63f058d5035beb72c3", "size": 566}
   },
+  "excluded": ["README.md", "package.json", "tests/"],
   "format": 1
 }
