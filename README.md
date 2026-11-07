@@ -33,3 +33,7 @@ Library art is `cover.jpg`, derived from `coverart.png`. The matching favicon is
 The library cover is also uploaded through `PUT /api/v1/me/github-games/{id}/cover` (`imageBase64` in JSON), since the bundle manifest's relative cover path returned a placeholder. An uploaded cover overrides the manifest; replace it through that endpoint whenever the artwork changes.
 
 The repository root is a complete StarHermit package: `starhermit.txt`, the engine entry `src/main.js`, and the generated browser loader `index.html`. Import this repository into StarHermit or host its root over HTTPS. To serve locally, use `python3 -m http.server 8000` and open `http://localhost:8000`. A rebuilt web distribution is written to `dist` by the packaging command above. Engine binaries are supplied by StarHermit and are not vendored. Source uses `starhermit:engine`, `starhermit:draw`, `starhermit:input`, and `starhermit:storage` directly. The simulation in `model.js` has no runtime dependencies.
+
+## License
+
+Perpetual Care uses the same license terms as [StarHermit Engine](https://github.com/HypeDriven/starhermit-engine): **PolyForm Noncommercial License 1.0.0**, with Hype Driven Development Inc.'s additional permission for games published on StarHermit.com, publicly available to play there, and kept in running order there. See [LICENSE](LICENSE) for the complete terms.

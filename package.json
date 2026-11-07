@@ -6,5 +6,6 @@
     "test": "node --test tests/model.test.mjs",
     "check": "node tools/package-web.mjs --check",
     "package": "node tools/package-web.mjs"
-  }
+  },
+  "license": "SEE LICENSE IN LICENSE"
 }
