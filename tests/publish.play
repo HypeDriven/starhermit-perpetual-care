@@ -1,29 +1,97 @@
 # viewport 1440x1000@1
-frames 10
-expect PERPETUAL
-click Resume
-frames 60
-expect Pause
-key Space 1
+frames 15
+expect PERPETUAL CARE
+click =Rooms
+frames 4
+click GP office
+frames 4
+drag 815 274 815 384 20
 frames 5
-expect Resume
-click =Patients
+expect Build room
+click Build room
+frames 8
+click 815 274
 frames 5
-expect THE REVENUE ROSTER
-click =Corporate
+click 835 288
 frames 5
-expect CORPORATE DEVELOPMENT
+click =Staff
+frames 4
+click Hire Doctor
+frames 5
+click =Rooms
+frames 4
+click Pharmacy
+frames 4
+drag 1115 480 1115 562 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 1115 480
+frames 5
+click =Staff
+frames 4
+click Hire Nurse
+frames 5
+click =Rooms
+frames 4
+click Ward
+frames 4
+drag 995 562 995 672 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 995 562
+frames 5
+click =Staff
+frames 4
+click Hire Nurse
+frames 5
+click =Rooms
+frames 4
+click Staff room
+frames 4
+drag 675 370 675 452 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 675 370
+frames 5
+click =Rooms
+frames 4
+click Toilets
+frames 4
+drag 555 452 555 507 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 555 452
+frames 5
+click 575 466
+frames 5
+click =Staff
+frames 4
+click Hire Caretaker
+frames 5
 click =Hospital
-frames 5
-click =Options
+frames 4
+save furnished
+click Open hospital
 frames 10
-expect Graphics
-save options
-click =Graphics
-frames 5
+key KeyF 1
+key KeyF 1
+frames 1200
+save running
+click =Options
+frames 4
+frames 10
 expect Frame rate limit
 save graphics
 key Escape 1
 frames 5
-expect LIVE WARD OVERVIEW
-save hospital
+key Space 1
+frames 5
+save final

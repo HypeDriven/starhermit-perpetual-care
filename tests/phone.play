@@ -1,0 +1,65 @@
+# viewport 390x844@1
+frames 15
+expect PERPETUAL CARE
+touch =Rooms
+frames 4
+touch GP office
+frames 4
+touch 175 238
+touch 175 274
+frames 5
+expect Build room
+touch Build room
+frames 8
+touch 175 238
+frames 5
+touch 182 243
+frames 5
+touch =Staff
+frames 4
+touch Hire Doctor
+frames 5
+touch =Rooms
+frames 4
+touch Pharmacy
+frames 4
+touch 274 306
+touch 274 333
+frames 5
+expect Build room
+touch Build room
+frames 8
+touch 274 306
+frames 5
+touch =Staff
+frames 4
+touch Hire Nurse
+frames 5
+touch =Rooms
+frames 4
+touch Ward
+frames 4
+touch 234 333
+touch 234 369
+frames 5
+expect Build room
+touch Build room
+frames 8
+touch 234 333
+frames 5
+touch =Staff
+frames 4
+touch Hire Nurse
+frames 5
+touch =Hospital
+frames 4
+save furnished
+touch Open hospital
+frames 10
+key KeyF 1
+key KeyF 1
+frames 1200
+save running
+key Space 1
+frames 5
+save final

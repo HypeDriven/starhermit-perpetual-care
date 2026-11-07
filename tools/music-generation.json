@@ -1,0 +1,182 @@
+{
+  "prompt": [
+    1890,
+    "2f88f83d-95bb-4083-b5a5-87c622d5ed92",
+    {
+      "1": {
+        "class_type": "CheckpointLoaderSimple",
+        "inputs": {
+          "ckpt_name": "yue2_3b_bf16.safetensors"
+        }
+      },
+      "2": {
+        "class_type": "YuE2GenerateABC",
+        "inputs": {
+          "clip": [
+            "1",
+            1
+          ],
+          "style": "Instrumental only, no vocals, no spoken words. Warm whimsical 1960s hospital waiting room lounge jazz. Soft upright piano, brushed drums, mellow vibraphone and pizzicato double bass, light bossa nova rhythm, 92 BPM, gentle playful melody, quiet spacious mix, charming management game background music, no dramatic changes.",
+          "lyrics": "[Instrumental]\n",
+          "seed": 73,
+          "mode": "full",
+          "max_abc_tokens": 8192,
+          "temperature": 0.7,
+          "top_p": 0.9,
+          "top_k": 30,
+          "repetition_penalty": 1.005,
+          "penalty_window": 100
+        }
+      },
+      "3": {
+        "class_type": "YuE2GenerateMusic",
+        "inputs": {
+          "clip": [
+            "1",
+            1
+          ],
+          "abc": [
+            "2",
+            0
+          ],
+          "style": "Instrumental only, no vocals, no spoken words. Warm whimsical 1960s hospital waiting room lounge jazz. Soft upright piano, brushed drums, mellow vibraphone and pizzicato double bass, light bossa nova rhythm, 92 BPM, gentle playful melody, quiet spacious mix, charming management game background music, no dramatic changes.",
+          "lyrics": "[Instrumental]\n",
+          "seed": 73,
+          "mode": "full",
+          "max_duration": 65.0,
+          "temperature": 1.0,
+          "top_p": 0.95,
+          "top_k": 100,
+          "repetition_penalty": 1.2,
+          "cfg_scale": 1.0
+        }
+      },
+      "4": {
+        "class_type": "EmptyYuE2LatentAudio",
+        "inputs": {
+          "seconds": [
+            "3",
+            1
+          ],
+          "batch_size": 1
+        }
+      },
+      "5": {
+        "class_type": "ConditioningZeroOut",
+        "inputs": {
+          "conditioning": [
+            "3",
+            0
+          ]
+        }
+      },
+      "6": {
+        "class_type": "KSampler",
+        "inputs": {
+          "model": [
+            "1",
+            0
+          ],
+          "positive": [
+            "3",
+            0
+          ],
+          "negative": [
+            "5",
+            0
+          ],
+          "latent_image": [
+            "4",
+            0
+          ],
+          "seed": 73,
+          "steps": 32,
+          "cfg": 1.0,
+          "sampler_name": "dpm_2",
+          "scheduler": "sgm_uniform",
+          "denoise": 1.0
+        }
+      },
+      "7": {
+        "class_type": "VAEDecodeAudio",
+        "inputs": {
+          "samples": [
+            "6",
+            0
+          ],
+          "vae": [
+            "1",
+            2
+          ]
+        }
+      },
+      "8": {
+        "class_type": "SaveAudioAdvanced",
+        "inputs": {
+          "audio": [
+            "7",
+            0
+          ],
+          "filename_prefix": "audio/PerpetualCare",
+          "format": "flac"
+        }
+      }
+    },
+    {
+      "create_time": 1794050144656
+    },
+    [
+      "8"
+    ]
+  ],
+  "outputs": {
+    "8": {
+      "audio": [
+        {
+          "filename": "PerpetualCare_00001.flac",
+          "subfolder": "audio",
+          "type": "output",
+          "id": "6418f650-1580-4fad-b7b9-53f941a45c00"
+        }
+      ]
+    }
+  },
+  "status": {
+    "status_str": "success",
+    "completed": true,
+    "messages": [
+      [
+        "execution_start",
+        {
+          "prompt_id": "2f88f83d-95bb-4083-b5a5-87c622d5ed92",
+          "timestamp": 1794050144657
+        }
+      ],
+      [
+        "execution_cached",
+        {
+          "nodes": [
+            "1"
+          ],
+          "prompt_id": "2f88f83d-95bb-4083-b5a5-87c622d5ed92",
+          "timestamp": 1794050144659
+        }
+      ],
+      [
+        "execution_success",
+        {
+          "prompt_id": "2f88f83d-95bb-4083-b5a5-87c622d5ed92",
+          "timestamp": 1794050506832
+        }
+      ]
+    ]
+  },
+  "meta": {
+    "8": {
+      "node_id": "8",
+      "display_node": "8",
+      "parent_node": null,
+      "real_node_id": "8"
+    }
+  }
+}
