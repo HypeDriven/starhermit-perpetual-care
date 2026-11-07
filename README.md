@@ -15,11 +15,25 @@ Play: https://825eaedf-a936-4e1e-a4d3-74f8ef652d61.starhermit.com/index.html
 5. Patients check in at reception, queue for a GP, and walk to their prescribed treatment. Completed diagnoses and treatments earn income. Watch their patience and your queues.
 6. Add waiting benches, plants, refreshments, toilets and a furnished staff room. Staff recover from fatigue during breaks. A caretaker maintains machines and cleanliness.
 
-Cure six patients to unlock **Diagnostics**, then sixteen to unlock **Surgery**. Advanced departments need specialists. Your opening objective is thirty cures, five rooms and a reputation of at least 65. Completing it leaves the hospital open for continued building.
+Cure six patients to unlock **Diagnostics**, then sixteen to unlock **Surgery**. Advanced departments need specialists. Your opening objective is thirty cures, five rooms and a reputation of at least 65. Completing it earns your first star and an $8,000 development grant. The hospital remains open as you work toward two and three stars.
 
 Rooms can have their doors moved or be demolished at half their construction and furnishing cost. Corridor objects can be sold individually. Daily payroll and running costs are charged every three minutes at 1×. A $20,000 loan is available, with $200 daily interest; repay it when finances permit. Closing admissions stops arrivals while existing patients continue treatment.
 
-The game saves after construction and management actions, every eight seconds, and on suspend or quit. Loading pauses the hospital. Version 2 uses a new save slot; the original game's save is preserved separately.
+The game saves after construction and management actions, every eight seconds, and on suspend or quit. Loading pauses the hospital. Version 2.1 upgrades existing version 2.0 saves in place, retaining buildings, staff, patients and finances. The original version 1 game's save remains in its separate slot.
+
+## Management and hospital life
+
+Open **Manage** or press **M**. Planning at this desk pauses the simulation; research, training and contract deadlines resume when you return to the hospital and play.
+
+- **Patient needs:** patients seek drinks machines, visit usable toilets and reserve waiting places on benches. Each bench seats two. Refreshments bring a little income; bins prevent litter. Caretakers walk to rubbish and clean it. Crowding, thirst, toilet needs, expensive care and dirty surroundings reduce patience. Inspect patients to see these needs, their urgency and diagnostic confidence, or send someone home at a reputation cost.
+- **Clinical decisions:** fast diagnoses shorten appointments at the cost of confidence; thorough diagnoses improve confidence. Treatment success depends on confidence, staff skill, fatigue, room upgrades, machine condition, cleanliness and research. An unsuccessful treatment leads to a second opinion without charging a treatment fee. Repeated unsuccessful care can cause a walkout.
+- **Staff development:** employees have individual traits, experience, morale and three training courses. Courses temporarily remove their cover, then improve skill and salary. Pay rises improve morale and increase payroll. The People screen can swap employees between matching departments. Staff rooms have two rest places per sofa.
+- **Research:** build a Research lab, fit its workstation and hire a Researcher. Fund one of six projects at a time. Researchers must be available and at their workstation. Projects improve diagnostic confidence, medicine, machine reliability, teaching, hospitality and precision care. A lab refit increases research output.
+- **Room development:** refits improve quality, throughput and clinical performance, with twelve seconds of downtime. The first refit is available immediately; Reliable machines research unlocks levels III and IV. Pause a room's intake to finish existing care before refitting. Decor and generous floor space contribute to room quality. Upgraded lounges restore energy faster, and upgraded toilets serve visitors sooner.
+- **Policies:** set fees to 80%, 100% or 125%; choose arrival-order or urgent-first clinical queues; adjust diagnostic thoroughness and preventive maintenance. Lower fees increase demand. Premium fees pay more but patients expect faster service. Preventive maintenance adds $100/day and repairs earlier.
+- **Contracts:** after three cures, accept a community grant, a quality inspection or four urgent emergency referrals. Only one contract runs at a time. Each states its deadline, reward and penalty. Emergency contracts count only the referred patients; inspections require cleanliness and no walkouts or deaths. The main view keeps the active deadline visible.
+
+The two-star goal adds seventy cures, 75 reputation, two discoveries and two trained employees. Three stars require 130 cures, 85 reputation, three completed contracts, five discoveries and three level-III rooms. Development grants are awarded once per rating. Daily reports show that day's income, expenses, cures and losses.
 
 ## Controls
 
@@ -37,24 +51,26 @@ The game saves after construction and management actions, every eight seconds, a
 | Zoom | Wheel / pinch / + and − buttons |
 | Pause / speed | Space / F |
 | Handbook / save | F2 / F6 |
+| Management desk | M or Manage |
 | Engine settings | F1 or Options |
 
 The responsive touch layout provides the same construction tools. Swipe the catalogue to reveal more entries. Engine Options owns graphics levels, audio volume, language and rebinding. Graphics changes apply live: shadow rendering, ambient occlusion, grading and antialiasing follow the engine's quality level. Simulation and walking animations stop while paused, unfocused or under the engine menu.
 
 ## Development and verification
 
-The package runs natively and in browsers through **StarHermit Engine 1.38.0**. It has no runtime npm dependencies. `src/model.js` is a deterministic simulation independent of the engine; `src/render.js` renders the hospital in 3D; `src/main.js` handles construction and interface; `src/sound.js` plays audio on the engine's shared buses.
+The package runs natively and in browsers through **StarHermit Engine 1.38.0**. It has no runtime npm dependencies. `src/model.js` handles construction, navigation and hospital life; `src/management.js` handles development, policy and contracts; both are deterministic and independent of the engine. `src/catalogue.js` defines the content. `src/render.js` renders the hospital; `src/main.js` and `src/management-ui.js` provide its interface; `src/sound.js` plays audio on the engine's shared buses.
 
 ```sh
 npm test                 # construction, routing, treatment, staffing, finances, saves
 npm run check            # native package validation and 120 headless frames
 npm run package          # rebuild browser loader and file index
 npm run test:browser     # actual browser construction and durable save/restore
+npm run test:management  # research, training, refits, policies and contracts
 ```
 
 Set `STARHERMIT` to your engine executable if it is not in the standard `~/sh/runtime/1.38.0/` location. Browser checks use Playwright from this game or a neighboring project and the shared `~/games/tools/gpu-chrome.mjs` helper; `STARHERMIT_CHROME_HELPER` can override that helper.
 
-`node tools/gen-play.mjs` and `node tools/gen-play.mjs --phone` regenerate the desktop and touch play scripts. Native render checks execute them with `starhermit . --render-check --guest --script tests/publish.play --quality molecular` and `tests/phone.play` respectively. They build actual rooms through the interface, place equipment, hire staff, open the hospital and run treatment.
+`node tools/gen-play.mjs`, `node tools/gen-play.mjs --phone` and `node tools/gen-play.mjs --depth` regenerate the construction, touch and management play scripts. Native checks execute them with `starhermit . --render-check --guest --script tests/publish.play --quality molecular`, substituting `tests/phone.play` or `tests/management.play` as appropriate. They exercise the actual construction and management interfaces, run treatments and persist progress.
 
 ## Original assets
 

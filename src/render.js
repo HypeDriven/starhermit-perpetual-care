@@ -5,9 +5,10 @@ import { WIDTH, DEPTH, ROOM_TYPES, EQUIPMENT, STAFF_TYPES, CONDITIONS, roomStatu
 const BOX=new BoxGeometry(1,1,1), CYL=new CylinderGeometry(1,1,1,10), SPHERE=new SphereGeometry(1,10,7);
 const mats=new Map(),models=new Map(),actors=new Map();
 const ghostMaterials=[new MeshBasicMaterial({color:'#cf7163',transparent:true,opacity:.4,depthWrite:false}),new MeshBasicMaterial({color:'#6fa88a',transparent:true,opacity:.4,depthWrite:false})];
-const floorGroup=new Group(), building=new Group(), furniture=new Group(), people=new Group(), garden=new Group(), ghosts=new Group();
+const floorGroup=new Group(), building=new Group(), furniture=new Group(), people=new Group(), garden=new Group(), ghosts=new Group(), rubbish=new Group();
 const camera=new OrthographicCamera(-24,24,18,-18,.1,180), ray=new Raycaster(), ground=new Plane(new Vector3(0,1,0),0), scratch=new Vector3();
 let revision=-1,modelVersion=0,drawnVersion=-1,lastLevel=-1,wallMode=1,lastWallMode=-1;
+let litterRevision=-1;
 let cam={x:14,z:11,zoom:1,rotation:0}, viewport={w:1440,h:900,panel:286,top:100,bottom:64};
 const wallParts=[];
 function mat(color,rough=.8){const k=color+':'+rough;if(!mats.has(k))mats.set(k,new MeshStandardMaterial({color,roughness:rough,metalness:rough<.5?.12:0}));return mats.get(k);}
@@ -20,7 +21,7 @@ function tree(x,z,scale=1){cyl(garden,x,.7*scale,z,.13*scale,1.4*scale,'#9e8265'
 export function init(){
  scene.background=new Color('#e3e7d7');
  renderer.camera=camera;renderer.toneMapping=ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.shadowMap.enabled=true;renderer.shadowMap.type=PCFSoftShadowMap;
- scene.add(floorGroup,building,furniture,people,garden,ghosts,new HemisphereLight('#fff7df','#8e9e81',1.6),new AmbientLight('#ffffff',.25));
+ scene.add(floorGroup,building,furniture,people,garden,ghosts,rubbish,new HemisphereLight('#fff7df','#8e9e81',1.6),new AmbientLight('#ffffff',.25));
  const sun=new DirectionalLight('#fff4d8',2.4);sun.position.set(-8,28,12);sun.target.position.set(14,0,11);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-28;sun.shadow.camera.right=28;sun.shadow.camera.top=24;sun.shadow.camera.bottom=-24;sun.shadow.camera.near=.5;sun.shadow.camera.far=85;sun.shadow.bias=-.0005;sun.shadow.normalBias=.035;scene.add(sun,sun.target);
  box(floorGroup,14,-.52,11,38,.5,32,'#b2bea0');box(floorGroup,14,-.19,11,28.6,.36,22.6,'#d3c9b0');
  box(floorGroup,14,-.03,11,28.15,.12,22.15,'#c9c9af');
@@ -113,6 +114,7 @@ function rebuild(s){
   for(let z=r.z;z<r.z+r.h;z++)for(let x=r.x;x<r.x+r.w;x++)if((x+z)%2)box(building,x+.5,.095,z+.5,.97,.015,.97,t.color);
   for(let x=r.x;x<r.x+r.w;x++){wall(building,r,x,r.z,'north');wall(building,r,x,r.z+r.h-1,'south');}
   for(let z=r.z;z<r.z+r.h;z++){wall(building,r,r.x,z,'west');wall(building,r,r.x+r.w-1,z,'east');}
+  const d=r.door;for(let n=0;n<(r.level||0);n++)box(building,d.x+.3+n*.16,1.72,d.z+.5,.11,.11,.11,'#dbb66d',.4);
  }
  for(const i of s.items)furniture.add(prop(i));revision=s.revision;drawnVersion=modelVersion;lastWallMode=-1;
 }
@@ -134,12 +136,12 @@ export function preview(data){
  ghosts.clear();if(!data)return;
  const material=ghostMaterials[data.ok?1:0];
  const {x,z,w,h}=data,m=new Mesh(BOX,material);m.position.set(x+w/2,.12,z+h/2);m.scale.set(w-.06,.09,h-.06);ghosts.add(m);
- // Geometry and materials above are transient: release only the unique material.
  for(const [xx,zz,ww,dd] of [[x,z,w,.06],[x,z+h-.06,w,.06],[x,z,.06,h],[x+w-.06,z,.06,h]])box(ghosts,xx+ww/2,.16,zz+dd/2,ww,.06,dd,data.ok?'#527f62':'#ad544a');
 }
 export function update(s,time,selected=null){
  const f=frame();if(f.levelIndex!==lastLevel){renderer.shadowMap.enabled=f.levelIndex>=2;renderer.ao=f.levelIndex>=4?{radius:.6,intensity:.55}:null;renderer.bloom=null;renderer.grade=f.levelIndex>=2?{contrast:.08,saturation:.95,vignette:{amount:.12}}:null;renderer.antialias=f.levelIndex>=4?'smaa':f.levelIndex>=2?'fxaa':'off';lastLevel=f.levelIndex;}
  if(revision!==s.revision||drawnVersion!==modelVersion)rebuild(s);
+ if(litterRevision!==s.litterRevision){rubbish.clear();for(const l of s.litter){const m=orb(rubbish,l.x,.15,l.z,.13,'#ceb99c');m.scale.set(.18,.045,.14);m.rotation.y=l.id*.8;}litterRevision=s.litterRevision;}
  if(lastWallMode!==wallMode||update.lastRotation!==cam.rotation){
   const a=(cam.rotation%4+4)%4;
   for(const p of wallParts){const front= (a===0&&(p.side==='south'||p.side==='east'))||(a===1&&(p.side==='south'||p.side==='west'))||(a===2&&(p.side==='north'||p.side==='west'))||(a===3&&(p.side==='north'||p.side==='east'));const full=wallMode===2||wallMode===1&&!front;p.upper.visible=full;p.cap.position.y=full?1.51:.83;p.g.visible=wallMode!==0;}
@@ -149,9 +151,14 @@ export function update(s,time,selected=null){
  for(const[id,g]of actors)if(!ids.has(id)){people.remove(g);actors.delete(id);}
  for(const a of all){
   let g=actors.get(a.id);if(!g){g=personModel(a.type?STAFF_TYPES[a.type].color:CONDITIONS[a.condition].color,!!a.type);actors.set(a.id,g);people.add(g);}
-  g.position.set(a.x,.08,a.z);g.rotation.y=a.angle||0;
+  g.position.set(a.x,.08,a.z);g.rotation.set(0,a.angle||0,0,'XYZ');g.visible=!(a.amenity?.kind==='toilet'&&!a.path.length);
+  const bed=a.state==='service'&&a.bed?s.items.find(i=>i.id===a.bed):null;
+  if(bed){const f=footprint(bed.type,bed.rotation),angle=bed.rotation*Math.PI/2;g.position.set(bed.x+f.w/2+Math.sin(angle)*.35,.68,bed.z+f.h/2+Math.cos(angle)*.35);g.rotation.set(-Math.PI/2,angle,0,'YXZ');}
   const walk=a.path.length?Math.sin(time*8+a.id)*.55:0,limbs=g.userData.limbs;limbs[0].rotation.x=walk;limbs[1].rotation.x=-walk;limbs[2].rotation.x=-walk*.65;limbs[3].rotation.x=walk*.65;
-  g.scale.setScalar(selected?.kind==='patient'&&selected.id===a.id?1.15:1);
+  if(a.seat&&!a.path.length){g.position.y=.19;limbs[0].rotation.x=-1.3;limbs[1].rotation.x=-1.3;}
+  if(a.amenity?.kind==='drink'&&!a.path.length)limbs[3].rotation.x=-1.9;
+  if((a.type==='researcher'||a.training)&&!a.path.length)limbs[3].rotation.x=-.8+Math.sin(time*5)*.08;
+  g.scale.setScalar(bed?.85:selected?.kind==='patient'&&selected.id===a.id?1.15:1);
  }
 }
 export function disposePreview(){ghosts.clear();}

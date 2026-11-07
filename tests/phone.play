@@ -60,6 +60,29 @@ key KeyF 1
 key KeyF 1
 frames 1200
 save running
+touch =Manage
+frames 4
+touch Urgent first
+frames 4
+touch =Research
+frames 4
+expect Diagnostic protocols
+touch Fund $2,200
+frames 5
+save mobile-research
+touch =People
+frames 4
+touch +10% pay
+frames 5
+touch =Rooms
+frames 4
+expect ROOM QUALITY
+touch =Contracts
+frames 4
+expect Community care grant
+save mobile-contracts
+touch =Back to hospital
+frames 4
 key Space 1
 frames 5
 save final

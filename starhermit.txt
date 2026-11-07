@@ -1,5 +1,5 @@
 name=Perpetual Care
-description=Build, furnish and run your own hospital. Draw rooms, place equipment, hire a team and turn improbable ailments into happy discharges.
+description=Build and run your own hospital. Furnish rooms, develop staff, research better care, meet patient needs and take on emergency referrals on the way to three stars.
 owner=2712e04e-461b-4d23-81ae-e40b429128a8
 cover=cover.jpg
 launch=index.html
@@ -29,4 +29,5 @@ control.zoom_in=Equal | Zoom in
 control.zoom_out=Minus | Zoom out
 control.help=F2 | Open management handbook
 control.save=F6 | Save hospital
+control.management=KeyM | Open hospital management desk
 cache..=0

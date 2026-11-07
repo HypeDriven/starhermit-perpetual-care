@@ -5,15 +5,18 @@ import { storage } from 'starhermit:storage';
 import * as M from './model.js';
 import * as view from './render.js';
 import * as sound from './sound.js';
+import {drawManagement} from './management-ui.js';
 
 const C={paper:'#f4f2e9',white:'#fffef7',ink:'#294a3c',muted:'#829080',line:'#dce0d1',green:'#47765b',sage:'#e3e9d8',orange:'#bc7e59',red:'#ad5c4b',dark:'#294b3d',yellow:'#e7d8b3'};
 let s=M.fresh(),paused=true,speed=1,tab='rooms',tool={kind:'room',type:'gp'},selected=null,anchor=null,pending=null,hoverTile=null,rotation=0;
 let buttons=[],panelRect=null,U=1,W=1440,H=900,mobile=false,scroll=0,maxScroll=0,toast='',toastTimer=0,modal=null,saveTimer=0,clock=0,wallMode=1,roomFilter=null;
 let dragUI=false,pinchZoom=1,lastCured=0;
+let managementTab='policies',managementScroll=0,managementMax=0,managementBody=null;
+let knownResearch=0,knownContracts=0,knownFailures=0,knownRating=0;
 const SAVE='perpetual-care-hospital-v2';
 function save(){try{storage.setJson(SAVE,s);}catch{notice('The save could not be written.');}}
 onQuit(save);onSuspend(save);
-onStart(()=>{try{const saved=storage.getJson(SAVE);if(M.validSave(saved)){s=saved;tool={kind:'select'};tab='hospital';notice('Hospital restored. Take a moment before resuming.');}}catch{}view.init();sound.init();lastCured=s.cured;});
+onStart(()=>{try{const restored=M.restoreSave(storage.getJson(SAVE));if(restored){s=restored;tool={kind:'select'};tab='hospital';notice('Hospital restored. Take a moment before resuming.');}}catch{}view.init();sound.init();lastCured=s.cured;knownResearch=s.research.completed.length;knownContracts=s.contractsWon;knownFailures=s.contractsFailed;knownRating=s.rating;});
 function notice(t){toast=t;toastTimer=4;}
 function result(r,success=''){if(!r.ok){notice(r.error);sound.cue('error');return false;}sound.cue('build');if(success)notice(success);save();return true;}
 function cancel(){anchor=null;pending=null;tool={kind:'select'};view.disposePreview();}
@@ -21,6 +24,7 @@ function selectTab(t){tab=t;scroll=0;anchor=null;pending=null;tool={kind:'select
 function equip(type){tool={kind:'item',type};anchor=null;pending=null;tab='equipment';}
 function chooseRoom(type){tool={kind:'room',type};anchor=null;pending=null;tab='rooms';selected=null;scroll=0;notice('Drag a rectangle, or tap two opposite corners.');}
 function selectedRoom(){return selected?.kind==='room'?s.rooms.find(r=>r.id===selected.id):null;}
+function manage(section='policies'){cancel();modal='manage';managementTab=section;managementScroll=0;}
 function reset(){s=M.fresh();paused=true;modal=null;selected=null;roomFilter=null;tab='rooms';tool={kind:'room',type:'gp'};anchor=null;pending=null;scroll=0;view.setCamera({x:14,z:11,zoom:1,rotation:0});save();notice('A new lease. A clean floor. Your hospital.');}
 function bounds(a,b){return {x:Math.min(a.x,b.x),z:Math.min(a.z,b.z),w:Math.abs(a.x-b.x)+1,h:Math.abs(a.z-b.z)+1};}
 function commitRoom(){
@@ -62,7 +66,7 @@ onGesture(e=>{
  if(e.type==='tap')press(e.x,e.y);
  if(e.type==='dragStart'){dragUI=!!hitUI(e.startX/U,e.startY/U);if(!dragUI&&tool.kind==='room'&&!pending)anchor=view.pick(e.startX,e.startY);}
  if(e.type==='drag'){
-  if(dragUI){if(panelRect&&e.startY/U>panelRect.y+80)scroll=Math.max(0,Math.min(maxScroll,scroll-e.dy/U));}
+  if(dragUI){if(modal==='manage'&&managementBody&&e.startY/U>=managementBody.y)managementScroll=Math.max(0,Math.min(managementMax,managementScroll-e.dy/U));else if(!modal&&panelRect&&e.startY/U>panelRect.y+80)scroll=Math.max(0,Math.min(maxScroll,scroll-e.dy/U));}
   else if(tool.kind!=='room'){view.pan(-e.dx/(22*U),-e.dy/(18*U));}
  }
  if(e.type==='dragEnd'&&!dragUI&&tool.kind==='room'&&anchor){const p=view.pick(e.x,e.y);if(p&&!e.cancelled)pending=bounds(anchor,p);anchor=null;}
@@ -70,10 +74,11 @@ onGesture(e=>{
  if(e.type==='pinch')view.setCamera({zoom:pinchZoom*e.scale});
 });
 onPointerButton(e=>{if(e.button===2&&e.pressed)cancel();});
-onWheel((dx,dy)=>{const p=pointer();if(p&&panelRect&&p.x/U<panelRect.x+panelRect.w&&p.y/U>panelRect.y)scroll=Math.max(0,Math.min(maxScroll,scroll+dy*42));else view.setCamera({zoom:view.cameraState().zoom*Math.exp(-dy*.08)});});
+onWheel((dx,dy)=>{if(modal==='manage'){managementScroll=Math.max(0,Math.min(managementMax,managementScroll+dy*42));return;}if(modal)return;const p=pointer();if(p&&panelRect&&p.x/U<panelRect.x+panelRect.w&&p.y/U>panelRect.y)scroll=Math.max(0,Math.min(maxScroll,scroll+dy*42));else view.setCamera({zoom:view.cameraState().zoom*Math.exp(-dy*.08)});});
 onAction(e=>{
  if(!e.pressed)return;
  if(e.action==='cancel'){if(modal)modal=null;else cancel();return;}
+ if(e.action==='management'){if(modal==='manage')modal=null;else manage();return;}
  if(modal)return;
  if(e.action==='pause')paused=!paused;
  if(e.action==='speed')speed=speed===1?2:speed===2?4:1;
@@ -109,14 +114,17 @@ function bar(x,y,w,value,c=C.green){rect(x,y,w,5,C.line,2);rect(x,y,w*Math.max(0
 function cross(x,y,size,c){rect(x-size*.16,y-size/2,size*.32,size,c,1);rect(x-size/2,y-size*.16,size,size*.32,c,1);}
 function header(){
  const hh=mobile?132:106;rect(0,0,W,hh,C.paper);line(0,hh,W,hh);
- rect(20,17,35,35,C.green,10);cross(37.5,34.5,23,'#f9f2de');text('PERPETUAL CARE',65,17,mobile?18:21,C.ink,600,'serif');label('A HOSPITAL OF YOUR OWN',66,43);
+ rect(20,17,35,35,C.green,10);cross(37.5,34.5,23,'#f9f2de');text('PERPETUAL CARE',65,17,mobile?18:21,C.ink,600,'serif');label(mobile?'HOSPITAL RATING '+s.rating+' / 3':'A HOSPITAL OF YOUR OWN',66,43);
  if(!mobile){line(300,17,300,52);text('ST. MARGIN HOSPITAL',320,19,11,C.muted,600);text('Your recovery is our recurring revenue.',320,39,11,C.muted);}
+ if(!mobile&&s.contract){text(s.contract.name,620,19,13,C.green,600);text(M.contractProgress(s)+' / '+s.contract.target+' cures · '+Math.max(0,Math.ceil(s.contract.deadline-s.time))+'s remaining',620,40,11,C.orange);}
+ else if(!mobile&&s.research.active){const r=s.research.active;text('Research: '+M.RESEARCH[r.id].name,620,19,13,C.green,600);text(Math.floor(r.progress/M.RESEARCH[r.id].work*100)+'% complete · '+s.research.completed.length+' discoveries',620,40,11,C.muted);}
  const bx=W-(mobile?168:338);button('?',W-54,16,34,35,()=>{modal='help';});button('Options',W-144,16,82,35,openMenu);
+ button('Manage',W-(mobile?236:376),16,mobile?84:92,35,()=>manage());
  if(!mobile){button('Save',W-214,16,62,35,()=>{save();notice('Hospital saved.');});button('New',W-276,16,54,35,()=>{modal='reset';});}
  const y=mobile?77:70,gap=mobile?W/4:(W-320)/4,start=mobile?20:320;
  const metrics=[['CASH',M.money(s.cash)],['REPUTATION',Math.round(s.reputation)+' / 100'],['CURED',s.cured+' patients'],['ON SITE',s.patients.length+' patients']];
  metrics.forEach(([a,b],i)=>{label(a,start+i*gap,y-7);text(b,start+i*gap,y+8,mobile?16:19,i===0&&s.cash<8000?C.red:C.ink,500,'serif');});
- if(!mobile){label('ESTABLISHED TODAY',21,72);text('A clean slate. A better kind of care.',21,87,11,C.muted);}
+ if(!mobile){label('HOSPITAL RATING '+('★'.repeat(s.rating)+'☆'.repeat(3-s.rating)),21,72);text(Math.round(s.satisfaction)+'% satisfaction · '+s.research.completed.length+' discoveries',21,87,11,C.muted);}
 }
 function footer(){
  rect(0,H-61,W,61,C.paper);line(0,H-61,W,H-61);
@@ -163,7 +171,7 @@ function sidebar(){
  }else if(tab==='staff'){
   label('GOOD PEOPLE. BETTER HOSPITAL.',inner,y+57);
   for(const[type,a]of Object.entries(M.STAFF_TYPES)){
-   const n=s.staff.filter(v=>v.type===type).length;card(inner,base+count*70-scroll,iw,'Hire '+a.name,n+' employed · '+M.money(a.wage)+'/day',M.money(a.cost),()=>{if(result(M.hire(s,type),a.name+' hired. Assignments are automatic.')){}},false,a.color==='#f6f2de'?'#87977f':a.color);count++;
+   const n=s.staff.filter(v=>v.type===type).length;card(inner,base+count*70-scroll,iw,'Hire '+a.name,n+' employed · '+M.money(a.wage)+'/day',M.money(a.cost),()=>{result(M.hire(s,type),a.name+' hired. Assignments are automatic.');},false,a.color==='#f6f2de'?'#87977f':a.color);count++;
   }
   let yy=base+count*70+12-scroll;
   if(yy>=base&&yy+70<y+h){label('ON THE ROSTER',inner,yy);wrap('Staff choose a matching room automatically. Build a furnished staff room before they need a break.',inner,yy+19,iw,11);}
@@ -181,6 +189,7 @@ function inspectPanel(x,y,w,bottom){
  if(r){
   const t=M.ROOM_TYPES[r.type],status=M.roomStatus(s,r);text(t.name,x,y,23,C.ink,500,'serif');text(r.w+' × '+r.h+' tiles · '+r.completed+' treated',x,y+32,11,C.muted);
   let yy=y+57;yy+=wrap(status.label,x,yy,w,12,status.ready?C.green:C.orange)+12;
+  if(yy+36<bottom){button('Manage room · level '+(r.level+1),x,yy,w,31,()=>manage('rooms'));yy+=38;}
   for(const type of t.required){
    if(yy+34>bottom)break;const fitted=M.roomItems(s,r).some(i=>i.type===type);button((fitted?'✓ ':'+ ')+M.EQUIPMENT[type].name,x,yy,w,31,()=>{equip(type);roomFilter=r.type;},fitted?'selected':'plain');yy+=37;
   }
@@ -189,9 +198,14 @@ function inspectPanel(x,y,w,bottom){
   if(yy+40<bottom){button('Move door',x,yy,w,33,()=>{tool={kind:'door'};notice('Choose a wall tile next to the corridor.');});yy+=40;}
   if(yy+40<bottom)button('Demolish room',x,yy,w,33,()=>{modal='demolish';});
  }else if(selected?.kind==='patient'){
-  const p=s.patients.find(p=>p.id===selected.id);if(!p){selected=null;return;}text(p.name,x,y,23,C.ink,500,'serif');wrap(M.CONDITIONS[p.condition].name,x,y+34,w,12,C.orange);label('VITALITY',x,y+74);bar(x,y+94,w,p.health/100);label('PATIENCE',x,y+119);bar(x,y+139,w,p.patience/100,p.patience<30?C.orange:C.green);text(p.state==='service'?'Receiving treatment':'Next: '+(M.ROOM_TYPES[p.stage]?.name||'Reception'),x,y+162,13);text('Billed '+M.money(p.billed),x,y+189,12,C.muted);
+  const p=s.patients.find(p=>p.id===selected.id);if(!p){selected=null;return;}text(p.name,x,y,21,C.ink,500,'serif');text(p.diagnosed?M.CONDITIONS[p.condition].name:'Awaiting diagnosis',x,y+29,12,C.orange);
+  text(p.amenity?(p.amenity.kind==='drink'?'Getting a drink':'Visiting the toilets'):p.state==='service'?'Receiving treatment':'Next: '+(M.ROOM_TYPES[p.stage]?.name||'Reception'),x,y+51,11,C.ink);
+  text((p.urgency>=4?'URGENT · ':'')+'Diagnosis '+Math.round(p.confidence*100)+'% · '+Math.floor(s.time-p.arrived)+'s on site',x,y+72,10,p.urgency>=4?C.red:C.muted);
+  label('VITALITY '+Math.round(p.health)+'%',x,y+96);bar(x,y+113,w,p.health/100);label('PATIENCE '+Math.round(p.patience)+'%',x,y+129);bar(x,y+146,w,p.patience/100,p.patience<30?C.orange:C.green);
+  text('Thirst '+Math.round(p.thirst)+'% · Toilet need '+Math.round(p.bladder)+'%',x,y+158,10,p.thirst>80||p.bladder>80?C.orange:C.muted);
+  if(y+207<bottom)button('Send home · −3 reputation',x,y+179,w,28,()=>{result(M.sendHome(s,p.id),'Patient sent home.');selected=null;});
  }else if(selected?.kind==='staff'){
-  const a=s.staff.find(a=>a.id===selected.id);if(!a){selected=null;return;}text(a.name,x,y,22,C.ink,500,'serif');text(M.STAFF_TYPES[a.type].name+' · '+M.money(M.STAFF_TYPES[a.type].wage)+'/day',x,y+34,12,C.muted);label('ENERGY',x,y+74);bar(x,y+94,w,a.energy/100);const r=s.rooms.find(r=>r.id===a.room);wrap(a.resting?'Taking a well-earned break':r?'Assigned to '+M.ROOM_TYPES[r.type].name:'Waiting for a matching room',x,y+121,w,13);if(y+210<bottom)button('Dismiss employee',x,y+174,w,34,()=>{result(M.fire(s,a.id),'Employee dismissed.');selected=null;});
+  const a=s.staff.find(a=>a.id===selected.id);if(!a){selected=null;return;}text(a.name,x,y,22,C.ink,500,'serif');text(M.STAFF_TYPES[a.type].name+' · '+M.money(M.wage(a))+'/day',x,y+34,12,C.muted);label('ENERGY',x,y+65);bar(x,y+83,w,a.energy/100);label('MORALE '+Math.round(a.morale)+'% · '+M.TRAITS[a.trait].name,x,y+102);const r=s.rooms.find(r=>r.id===a.room);wrap(a.training?'In training · '+Math.ceil(a.training.remaining)+'s':a.resting?'Taking a well-earned break':r?'Assigned to '+M.ROOM_TYPES[r.type].name:'Waiting for a matching room',x,y+126,w,12);if(y+204<bottom)button('Training, pay & assignments',x,y+169,w,31,()=>manage('people'));
  }else if(selected?.kind==='item'){
   const i=s.items.find(i=>i.id===selected.id);if(!i){selected=null;return;}const e=M.EQUIPMENT[i.type];text(e.name,x,y,21,C.ink,500,'serif');wrap(e.description,x,y+37,w,13);button('Sell for '+M.money(e.cost*.5),x,y+112,w,34,()=>{result(M.removeItem(s,i.id),'Object sold.');selected=null;});
  }else{
@@ -234,6 +248,8 @@ function constructionHUD(){
  button('−',cx,cy,30,30,()=>view.setCamera({zoom:view.cameraState().zoom/1.15}));button('+',cx+35,cy,30,30,()=>view.setCamera({zoom:view.cameraState().zoom*1.15}));
  button('↻',cx+70,cy,34,30,()=>{if(tool.kind==='item')rotation=(rotation+1)%4;else view.setCamera({rotation:view.cameraState().rotation+1});});
  button(['Walls off','Cutaway','Full walls'][wallMode],cx+109,cy,mobile?73:98,30,()=>{wallMode=(wallMode+1)%3;view.setWalls(wallMode);});
+ if(mobile&&s.contract)pill('CONTRACT '+M.contractProgress(s)+'/'+s.contract.target+' · '+Math.max(0,Math.ceil(s.contract.deadline-s.time))+'s',20,143,W-226,C.yellow);
+ else if(mobile&&s.research.active)pill('RESEARCH '+Math.floor(s.research.active.progress/M.RESEARCH[s.research.active.id].work*100)+'%',20,143,W-226,C.sage);
  if(!mobile){button('Select',viewX+5,H-101,65,29,()=>{cancel();tab='inspect';});button('Sell',viewX+77,H-101,55,29,()=>{tool={kind:'sell'};pending=null;anchor=null;});}
  if(tool.kind!=='select'&&!pending)button('Cancel',W-87,mobile?182:H-101,67,29,cancel);
  if(mobile&&selectedRoom()&&!pending){const yy=panelRect.y-77;button('Furnish room',20,yy,139,31,()=>{tab='equipment';roomFilter=selectedRoom().type;scroll=0;});button('Move door',167,yy,108,31,()=>{tool={kind:'door'};notice('Choose a wall tile beside the corridor.');});button('Demolish',283,yy,104,31,()=>{modal='demolish';});}
@@ -243,19 +259,30 @@ function worldLabels(){
   const corners=[[r.x,r.z],[r.x+r.w,r.z],[r.x,r.z+r.h],[r.x+r.w,r.z+r.h]].map(([x,z])=>view.project(x,.1,z));
   const p=corners.sort((a,b)=>b.y-a.y)[0];p.x/=U;p.y=p.y/U+24;if(p.x<(mobile?0:310)||p.x>W-25||p.y<(mobile?180:175)||p.y>(mobile?panelRect?.y-25:H-114))continue;
   const status=M.roomStatus(s,r),q=s.patients.filter(a=>a.room===r.id&&a.state==='queue').length,t=M.ROOM_TYPES[r.type],w=mobile?70:100;
-  rect(p.x-w/2,p.y-17,w,31,status.ready?'#fbfcf0ed':'#f8eddaed',6);text(t.short+(q?' · '+q+' waiting':''),p.x,p.y-10,11,status.ready?C.green:C.orange,700,'sans-serif','center');text(status.ready?'OPEN':'FITTING OUT',p.x,p.y+4,7,C.muted,600,'sans-serif','center');
+  rect(p.x-w/2,p.y-17,w,31,status.ready?'#fbfcf0ed':'#f8eddaed',6);text(t.short+(r.level?' '+('I'.repeat(r.level+1)):'')+(q?' · '+q+' waiting':''),p.x,p.y-10,11,status.ready?C.green:C.orange,700,'sans-serif','center');text(r.upgrading>0?'REFITTING':r.closed?'INTAKE PAUSED':status.ready?'OPEN':status.label.includes('training')?'TRAINING':'FITTING OUT',p.x,p.y+4,7,C.muted,600,'sans-serif','center');
  }
  const p=view.project(14.6,1.35,18.5);if(p.x/U>(mobile?0:310)&&p.y/U<(mobile?H-390:H-120)){pill('RECEPTION',p.x/U-46,p.y/U-25,92,'#faf7e9df');}
  if(selected?.kind==='patient'){const a=s.patients.find(a=>a.id===selected.id);if(a){const p=view.project(a.x,1.35,a.z);pill(a.name,p.x/U-60,p.y/U-27,120,C.white);}}
+ for(const a of s.patients.filter(a=>a.state!=='exit'&&(a.amenity||a.urgency>=4||a.health<30)).slice(0,8)){
+  const p=view.project(a.x,1.3,a.z),xx=p.x/U,yy=p.y/U;if(xx<(mobile?10:310)||xx>W-24||yy<175||yy>(mobile?panelRect.y-25:H-112))continue;
+  const caption=a.amenity?(a.amenity.kind==='drink'?'DRINK':'WC'):a.urgency>=4?'URGENT':'!';pill(caption,xx-25,yy-22,50,a.amenity?C.yellow:'#ebc7b6');
+ }
 }
 function modalUI(){
  if(!modal&&!s.ended)return;rect(0,0,W,H,'#203b32a0');buttons=[];
+ if(modal==='manage'){
+  const w=Math.min(W-24,900),h=Math.min(H-48,700),x=(W-w)/2,y=(H-h)/2;
+  const layout=drawManagement({s,x,y,w,h,section:managementTab,scroll:managementScroll,selected,result,ui:{rect,text,label,wrap,button,bar,C},onTab:t=>{managementTab=t;managementScroll=0;},onClose:()=>{modal=null;},onBuild:()=>{modal=null;chooseRoom('research');},onInspect:id=>{modal=null;selected={kind:'room',id};tab='inspect';scroll=0;}});
+  managementMax=layout.max;managementBody=layout.body;managementScroll=Math.min(managementScroll,managementMax);
+  if(toastTimer>0){rect(x+17,y+h-88,w-34,27,C.dark,5);text(toast,x+28,y+h-80,mobile?10:11,'#fff8e6');}
+  return;
+ }
  const w=Math.min(W-32,650),x=(W-w)/2,h=modal==='help'?Math.min(H-60,610):260,y=(H-h)/2;rect(x,y,w,h,C.paper,13);
  if(modal==='help'){
   label('WELCOME TO PERPETUAL CARE',x+26,y+26);text('Build a hospital. Make it work.',x+26,y+57,mobile?24:32,C.ink,500,'serif');
   const instructions=[['1. Draw a room','Choose Rooms, then drag a rectangle on the floor. You can also tap two opposite corners. Confirm the cost.'],['2. Make room for care','Place the required equipment inside. Doors need a clear path. R rotates furniture; the curved arrow works on touch.'],['3. Hire the right people','Doctors diagnose. Nurses run pharmacies and wards. Specialists run advanced rooms. Assignments are automatic.'],['4. Open your doors','Patients check in, queue for a GP, then seek the treatment their condition needs. Build a pharmacy AND a ward for the first arrivals.'],['5. Keep everyone going','Add benches, plants, toilets and a staff room. Caretakers repair equipment. Cure 6 patients to unlock Diagnostics; 16 unlocks Surgery.']];
   let yy=y+112;for(const[a,b]of instructions){text(a,x+26,yy,14,C.green,600);yy+=23;yy+=wrap(b,x+26,yy,w-52,mobile?11:12,C.muted,mobile?16:18)+16;}
-  if(!mobile)text('Space pause · B rooms · E equipment · H hire · V inspect · WASD pan · Q / R rotate',x+26,y+h-83,10,C.muted);
+  if(!mobile)text('M management · Space pause · B rooms · E equipment · H hire · WASD pan · Q / R rotate',x+26,y+h-83,10,C.muted);
   button('Let’s build something good',x+26,y+h-57,w-52,36,()=>{modal=null;},'primary');
  }else if(modal==='reset'){
   text('A fresh start?',x+26,y+30,29,C.ink,500,'serif');wrap('Your current hospital will be replaced. This resets the building, staff, patients and finances.',x+26,y+83,w-52,14);button('Keep this hospital',x+26,y+h-65,(w-64)/2,38,()=>{modal=null;});button('Start again',x+38+(w-64)/2,y+h-65,(w-64)/2,38,reset,'orange');
@@ -270,13 +297,20 @@ onUpdate(dt=>{
  clock+=dt;toastTimer=Math.max(0,toastTimer-dt);saveTimer+=dt;
  if(!paused&&!modal&&f.focused&&!f.overlayOpen){let left=Math.min(dt,.15)*speed;while(left>0){const step=Math.min(.1,left);M.tick(s,step);left-=step;}}
  if(s.cured>lastCured){sound.cue('cure');lastCured=s.cured;}
+ if(s.research.completed.length>knownResearch){notice('Research complete: '+M.RESEARCH[s.research.completed[s.research.completed.length-1]].name+'.');sound.cue('cure');}
+ if(s.contractsWon>knownContracts){notice('Contract completed. The development funds have arrived.');sound.cue('cure');}
+ if(s.contractsFailed>knownFailures)notice('Contract missed. Review capacity before accepting the next offer.');
+ if(s.rating>knownRating){notice('Your hospital has earned '+s.rating+' star'+(s.rating>1?'s':'')+'! Development grant awarded.');sound.cue('cure');}
+ knownResearch=s.research.completed.length;knownContracts=s.contractsWon;knownFailures=s.contractsFailed;knownRating=s.rating;
  if(saveTimer>8){saveTimer=0;save();}
  U=Math.max(.8,Math.min(1.1,f.width/1440));W=f.width/U;H=f.height/U;mobile=W<780;
  let px=(isDown('pan_right')?1:0)-(isDown('pan_left')?1:0),pz=(isDown('pan_down')?1:0)-(isDown('pan_up')?1:0);if(px||pz)view.pan(px*dt*8,pz*dt*8);
  view.updateCamera(f.width,f.height,mobile?0:310*U,(mobile?132:106)*U,(mobile?389:64)*U);view.update(s,s.time,selected);
  const p=pointer();hoverTile=p&&!hitUI(p.x/U,p.y/U)?view.pick(p.x,p.y):null;
- buttons=[];header();sidebar();footer();worldLabels();constructionHUD();
- if(toastTimer>0&&!modal){const w=Math.min(mobile?W-28:620,W-40),x=mobile?14:(W+310-w)/2,y=mobile?panelRect.y-43:H-194;rect(x,y,w,34,C.dark,7);text(toast,x+w/2,y+11,mobile?10:12,'#fff8e6',500,'sans-serif','center');}
+ buttons=[];
+ if(!modal&&!s.ended){header();sidebar();footer();worldLabels();constructionHUD();
+  if(toastTimer>0){const w=Math.min(mobile?W-28:620,W-40),x=mobile?14:(W+310-w)/2,y=mobile?panelRect.y-43:H-194;rect(x,y,w,34,C.dark,7);text(toast,x+w/2,y+11,mobile?10:12,'#fff8e6',500,'sans-serif','center');}
+ }else view.disposePreview();
  modalUI();sound.update(f.focused&&!f.overlayOpen);
  const hot=buttons.some(b=>!b.disabled&&p&&p.x/U>=b.x&&p.x/U<=b.x+b.w&&p.y/U>=b.y&&p.y/U<=b.y+b.h);setCursor(hot?'pointer':hoverTile&&tool.kind!=='select'?'crosshair':'default');
 });

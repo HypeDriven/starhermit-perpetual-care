@@ -17,12 +17,14 @@ const config=JSON.parse(index.match(/id="starhermit-config">([^<]+)/)[1]);
 const entry=index.match(/src="([^"]+starhermit\.js)"/)[1];
 const manifest={...config.manifest,url:new URL('manifest.json',entry).href};
 const settingsOnly=process.argv.includes('--settings');
-let script='',restore=false;
+const depth=process.argv.includes('--depth');
+const phoneOnly=process.argv.includes('--phone-only');
+let script='',restore=false,restoreScript='';
 const types={'.js':'text/javascript','.json':'application/json','.html':'text/html','.glb':'model/gltf-binary','.ogg':'audio/ogg','.jpg':'image/jpeg','.png':'image/png','.ico':'image/x-icon'};
 const server=createServer((req,res)=>{
  const path=new URL(req.url,'http://x').pathname;
  if(path==='/__play.html'){
-  const data=JSON.stringify({entry,manifest,runtime:{play:restore?'frames 20\nexpect Hospital restored\nexpect GP\nexpect Play\nsave restored\n':script,...(settingsOnly?{}:{quality:'molecular'}),ephemeral:false}}).replaceAll('<','\\u003c');
+  const data=JSON.stringify({entry,manifest,runtime:{play:restore?restoreScript:script,...(settingsOnly?{}:{quality:'molecular'}),ephemeral:false}}).replaceAll('<','\\u003c');
   res.writeHead(200,{'content-type':'text/html'}).end(`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden}canvas{width:100%;height:100%;display:block}</style></head><body><canvas></canvas><script type="application/json" id="check">${data}</script><script type="module" src="/__driver.mjs"></script></body></html>`);return;
  }
  if(path==='/__driver.mjs'){res.writeHead(200,{'content-type':'text/javascript'}).end("const options=JSON.parse(document.querySelector('#check').textContent);const {start}=await import(options.entry);start({manifest:options.manifest,package:new URL('./',location.href),canvas:document.querySelector('canvas'),runtime:options.runtime}).catch(e=>console.error(e));");return;}
@@ -35,8 +37,12 @@ const url=`http://127.0.0.1:${server.address().port}/__play.html`;
 const {browser,close,gpu}=await launchChrome(chromium);console.log('Browser play on '+gpu);
 let failed=false;
 try{
- for(const name of settingsOnly?['desktop']:['desktop','phone']){
-  restore=false;script=readFileSync(join(root,'tests',name==='phone'?'phone.play':'publish.play'),'utf8');
+ for(const name of settingsOnly?['desktop']:phoneOnly?['phone']:['desktop','phone']){
+  restore=false;script=readFileSync(join(root,'tests',name==='phone'?'phone.play':depth?'management.play':'publish.play'),'utf8');
+  restoreScript='frames 20\nexpect A healthy balance.\nexpect RX\nexpect WD\nexpect Play\n';
+  if(name==='phone')restoreScript+='touch =Manage\nframes 4\ntouch =Research\nframes 4\nexpect In progress\ntouch =People\nframes 4\nexpect $528/day\nsave restored-management\ntouch =Back to hospital\nframes 4\n';
+  else if(depth)restoreScript+='click =Manage\nframes 4\nclick =People\nframes 4\nexpect Level 2\nclick =Research\nframes 4\nexpect Complete\nsave restored-management\nclick =Back to hospital\nframes 4\n';
+  restoreScript+='save restored\n';
   if(settingsOnly)script='frames 30\nclick =Options\nframes 10\nexpect Graphics quality\nsave quality-menu\n';
   const viewport=name==='phone'?{width:390,height:844}:{width:1440,height:1000};
   const ctx=await browser.newContext({viewport,isMobile:name==='phone',hasTouch:name==='phone'}),page=await ctx.newPage(),problems=[];
@@ -48,10 +54,12 @@ try{
   writeFileSync(join(out,name+'.json'),JSON.stringify({pass,...state,problems},null,2));await page.screenshot({path:join(out,name+'.png')});
   console.log(`${pass?'PASS':'FAIL'} ${name}: ${JSON.stringify(state.results?.lines)} ${problems.join('; ')}`);failed||=!pass;
   if(settingsOnly){await ctx.close();continue;}
+  await page.keyboard.press('Escape');await page.keyboard.press('F6');await page.waitForTimeout(350);
+  await page.screenshot({path:join(out,name+'.png')});
   // Reload the same origin, retaining the actual engine's durable save.
   restore=true;await page.reload({waitUntil:'load'});
-  await page.waitForFunction(()=>globalThis.starhermitResults?.lines?.some(l=>/^(PASS|FAIL)/.test(l)),null,{timeout:60000});
-  const after=await page.evaluate(()=>({lines:globalThis.starhermitResults.lines,store:Object.fromEntries(Object.entries(localStorage))}));
+  await page.waitForFunction(()=>globalThis.starhermitResults?.lines?.some(l=>/^(PASS|FAIL)/.test(l))||document.documentElement.dataset.starhermit==='error',null,{timeout:60000}).catch(async e=>{await page.screenshot({path:join(out,name+'-restore-error.png')});console.log('Restore timeout',await page.evaluate(()=>({state:document.documentElement.dataset.starhermit,text:document.body.innerText,results:globalThis.starhermitResults})));throw e;});
+  const after=await page.evaluate(()=>({lines:globalThis.starhermitResults?.lines||[],state:document.documentElement.dataset.starhermit,error:document.querySelector('[role=alert]')?.textContent,store:Object.fromEntries(Object.entries(localStorage))}));
   const restored=after.lines.some(l=>l.startsWith('PASS'))&&!after.lines.some(l=>l.startsWith('FAIL'));
   console.log(`${restored?'PASS':'FAIL'} ${name} save/restore`);failed||=!restored;
   writeFileSync(join(out,name+'-restored.json'),JSON.stringify(after,null,2));await page.screenshot({path:join(out,name+'-restored.png')});await ctx.close();

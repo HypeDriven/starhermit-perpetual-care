@@ -1,0 +1,162 @@
+# viewport 1440x1000@1
+frames 15
+expect PERPETUAL CARE
+click =Rooms
+frames 4
+click GP office
+frames 4
+drag 815 274 815 384 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 815 274
+frames 5
+click 835 288
+frames 5
+click =Staff
+frames 4
+click Hire Doctor
+frames 5
+click =Rooms
+frames 4
+click Pharmacy
+frames 4
+drag 1115 480 1115 562 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 1115 480
+frames 5
+click =Staff
+frames 4
+click Hire Nurse
+frames 5
+click =Rooms
+frames 4
+click Ward
+frames 4
+drag 995 562 995 672 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 995 562
+frames 5
+click =Staff
+frames 4
+click Hire Nurse
+frames 5
+click =Rooms
+frames 4
+click Staff room
+frames 4
+drag 675 370 675 452 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 675 370
+frames 5
+click =Rooms
+frames 4
+click Toilets
+frames 4
+drag 555 452 555 507 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 555 452
+frames 5
+click 575 466
+frames 5
+click =Staff
+frames 4
+click Hire Caretaker
+frames 5
+click =Rooms
+frames 4
+click Research lab
+frames 4
+drag 775 439 775 521 20
+frames 5
+expect Build room
+click Build room
+frames 8
+click 775 439
+frames 5
+click =Staff
+frames 4
+click Hire Researcher
+frames 5
+click =Manage
+frames 4
+click =Research
+frames 4
+expect Diagnostic protocols
+click Fund $2,200
+frames 5
+save research
+click =Back to hospital
+frames 4
+click =Manage
+frames 4
+click =People
+frames 4
+click Train $900
+frames 5
+click +10% pay
+frames 5
+save staff-development
+click =Back to hospital
+frames 4
+click =Manage
+frames 4
+click =Rooms
+frames 4
+click Upgrade $2,440
+frames 5
+save refit
+click =Policies
+frames 4
+click Urgent first
+click Thorough
+frames 5
+save policies
+click =Back to hospital
+frames 4
+click =Hospital
+frames 4
+save furnished
+click Open hospital
+frames 10
+key KeyF 1
+key KeyF 1
+frames 1200
+save running
+frames 1800
+click =Manage
+frames 4
+click =Contracts
+frames 4
+expect Community care grant
+click Accept contract
+frames 5
+expect Contract accepted
+save contract
+click =Back to hospital
+frames 4
+frames 120
+save developed-hospital
+click =Options
+frames 4
+frames 10
+expect Frame rate limit
+save graphics
+key Escape 1
+frames 5
+key Space 1
+frames 5
+save final

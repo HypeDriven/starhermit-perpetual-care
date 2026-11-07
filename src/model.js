@@ -1,44 +1,9 @@
 // Pure construction, navigation, staffing, treatment and finance simulation.
 export const WIDTH=28, DEPTH=22, DAY_LENGTH=180, ENTRY={x:13,z:20};
-export const ROOM_TYPES={
- gp:{name:'GP office',short:'GP',color:'#bed2bb',wall:'#6f967c',base:900,tile:90,min:3,staff:'doctor',required:['desk','exam'],time:10,fee:380,description:'Every cure begins with a diagnosis.'},
- pharmacy:{name:'Pharmacy',short:'RX',color:'#d8d9b6',wall:'#a2ad73',base:1200,tile:95,min:3,staff:'nurse',required:['pharmacy'],time:12,fee:1350,description:'A prescription for modern life.'},
- ward:{name:'Ward',short:'WD',color:'#b9d2d0',wall:'#6a9d9b',base:1600,tile:95,min:4,staff:'nurse',required:['bed'],time:21,fee:1900,description:'A little rest. A very itemized bill.'},
- scanner:{name:'Diagnostics',short:'DX',color:'#c9c4dc',wall:'#9184b1',base:2200,tile:110,min:4,staff:'specialist',required:['scanner'],time:16,fee:2400,unlock:6,description:'Look deeper. Invoice accordingly.'},
- surgery:{name:'Surgery',short:'OR',color:'#dbbec3',wall:'#ae7d86',base:3200,tile:125,min:4,staff:'specialist',required:['operating'],time:23,fee:3400,unlock:16,description:'Precision care for improbable ailments.'},
- staff:{name:'Staff room',short:'TEA',color:'#e5cfaf',wall:'#b69a70',base:650,tile:65,min:3,staff:null,required:['sofa'],description:'Because doctors are people, allegedly.'},
- toilets:{name:'Toilets',short:'WC',color:'#d4d9dc',wall:'#8d9da5',base:600,tile:65,min:3,staff:null,required:['toilet','sink'],description:'The foundation of civilized medicine.'},
-};
-export const EQUIPMENT={
- desk:{name:'Doctor desk',cost:1100,w:1,h:1,rooms:['gp'],model:'desk',description:'Required in a GP office.'},
- exam:{name:'Examination couch',cost:850,w:1,h:2,rooms:['gp'],model:'bed',description:'Required in a GP office.'},
- pharmacy:{name:'Medicine cabinet',cost:1600,w:1,h:1,rooms:['pharmacy'],model:'pharmacy',description:'Required in a pharmacy.'},
- bed:{name:'Hospital bed',cost:950,w:1,h:2,rooms:['ward'],model:'bed',description:'Each bed accommodates another inpatient.'},
- scanner:{name:'Diagnostic scanner',cost:4200,w:2,h:2,rooms:['scanner'],model:'scanner',description:'Required in Diagnostics.'},
- operating:{name:'Operating table',cost:5200,w:1,h:2,rooms:['surgery'],model:'bed',description:'Required in Surgery.'},
- sofa:{name:'Comfortable sofa',cost:450,w:2,h:1,rooms:['staff'],model:'sofa',description:'Restores staff energy.'},
- toilet:{name:'Toilet cubicle',cost:350,w:1,h:1,rooms:['toilets'],description:'An essential public service.'},
- sink:{name:'Wash basin',cost:200,w:1,h:1,rooms:['toilets'],description:'Required for working toilets.'},
- bench:{name:'Waiting bench',cost:220,w:2,h:1,corridor:true,model:'sofa',description:'Nearby patients wait more patiently.'},
- plant:{name:'Potted plant',cost:100,w:1,h:1,any:true,model:'plant',description:'Makes the hospital feel cared for.'},
- vending:{name:'Drinks machine',cost:650,w:1,h:1,corridor:true,description:'Refreshments improve patient comfort.'},
- bin:{name:'Litter bin',cost:80,w:1,h:1,corridor:true,description:'A cleaner hospital is a happier hospital.'},
- radiator:{name:'Radiator',cost:180,w:1,h:1,any:true,description:'Comfort, without a prescription.'},
-};
-export const STAFF_TYPES={
- doctor:{name:'Doctor',cost:1200,wage:480,color:'#f6f2de',description:'Diagnoses patients in GP offices.'},
- nurse:{name:'Nurse',cost:900,wage:350,color:'#75aaa6',description:'Works in pharmacies and wards.'},
- specialist:{name:'Specialist',cost:1900,wage:700,color:'#ad99c0',description:'Runs scanners and surgery.'},
- janitor:{name:'Caretaker',cost:650,wage:240,color:'#cc9563',description:'Repairs machines and keeps things clean.'},
-};
-export const CONDITIONS=[
- {name:'Chronic Mondays',treatment:'pharmacy',color:'#d59b5c'},
- {name:'Inbox inflammation',treatment:'pharmacy',color:'#a4b2cb'},
- {name:'Executive exhaustion',treatment:'ward',color:'#b38eae'},
- {name:'Acute overthinking',treatment:'ward',color:'#99b49c'},
- {name:'Imaginary hiccups',treatment:'scanner',color:'#cab875',unlock:6},
- {name:'Spontaneous paperwork',treatment:'surgery',color:'#b68476',unlock:16},
-];
+import { ROOM_TYPES, EQUIPMENT, STAFF_TYPES, CONDITIONS } from './catalogue.js';
+export { ROOM_TYPES, EQUIPMENT, STAFF_TYPES, CONDITIONS } from './catalogue.js';
+import * as management from './management.js';
+export * from './management.js';
 const FIRST=['Robin','Sam','Jules','Casey','Alex','Noor','Jamie','Drew','Ari','Morgan','Lee','Billie','Elliot','Ash','Pip','Frankie'];
 const LAST=['Wells','Okafor','Chen','Patel','Moss','Bell','Flores','Stone','Reed','Brooks','Finch','Park'];
 const key=(x,z)=>z*WIDTH+x, clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), dist=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.z-b.z), integer=Number.isInteger;
@@ -60,7 +25,8 @@ export const roomItems=(s,r)=>s.items.filter(i=>i.room===r.id);
 export function log(s,title,text,kind='info'){s.log.unshift({title,text,kind,time:s.time});s.log.length=Math.min(s.log.length,40);}
 function spend(s,n){s.cash-=n;s.spent+=n;}
 function earn(s,n){s.cash+=n;s.earned+=n;}
-export function fresh(seed=73){return {version:2,seed:seed>>>0,cash:65000,earned:0,spent:0,time:0,day:1,rooms:[],items:[],staff:[],patients:[],nextId:1,cured:0,lost:0,deaths:0,reputation:50,arrival:8,dispatch:0,revision:0,log:[{title:'A fresh start',text:'Build something people can get better in.',kind:'good',time:0}],loan:0,won:false,ended:null,cleanliness:100,open:false,history:[],lastReport:null};}
+export function fresh(seed=73){return management.initializeDepth({version:2,seed:seed>>>0,cash:65000,earned:0,spent:0,time:0,day:1,rooms:[],items:[],staff:[],patients:[],nextId:1,cured:0,lost:0,deaths:0,reputation:50,arrival:8,dispatch:0,revision:0,log:[{title:'A fresh start',text:'Build something people can get better in.',kind:'good',time:0}],loan:0,won:false,ended:null,cleanliness:100,open:false,history:[],lastReport:null});}
+export function restoreSave(value){return validSave(value)?management.initializeDepth(JSON.parse(JSON.stringify(value))):null;}
 function random(s){s.seed=(Math.imul(s.seed,1664525)+1013904223)>>>0;return s.seed/4294967296;}
 export function doorOutside(r){const d=r.door;return {x:d.x+(d.side==='east'?1:d.side==='west'?-1:0),z:d.z+(d.side==='south'?1:d.side==='north'?-1:0)};}
 function sameDoor(a,b,r){const d=r.door,o=doorOutside(r);return(a.x===d.x&&a.z===d.z&&b.x===o.x&&b.z===o.z)||(b.x===d.x&&b.z===d.z&&a.x===o.x&&a.z===o.z);}
@@ -111,7 +77,7 @@ export function canBuild(s,type,x,z,w,h){
 }
 export function buildRoom(s,type,x,z,w,h){
  const c=canBuild(s,type,x,z,w,h);if(!c.ok)return c;
- const room={id:s.nextId++,type,x,z,w,h,door:c.door,staff:null,condition:100,completed:0};spend(s,c.cost);s.rooms.push(room);s.revision++;
+ const room={id:s.nextId++,type,x,z,w,h,door:c.door,staff:null,condition:100,completed:0,level:0,closed:false,upgrading:0};spend(s,c.cost);s.rooms.push(room);s.revision++;
  log(s,ROOM_TYPES[type].name+' built','Place the required equipment inside.','good');return {ok:true,room};
 }
 export function interiorAccessible(s,r){
@@ -148,14 +114,15 @@ export function removeItem(s,id){const i=s.items.find(i=>i.id===id);if(!i)return
 export function demolish(s,id){
  const r=s.rooms.find(r=>r.id===id);if(!r)return fail('Choose a room to demolish.');if(s.patients.some(p=>p.room===id&&p.state==='service'))return fail('Wait for treatment to finish.');
  s.cash+=Math.round((roomCost(r.type,r.w,r.h)+roomItems(s,r).reduce((n,i)=>n+EQUIPMENT[i.type].cost,0))*.5);s.items=s.items.filter(i=>i.room!==id);s.rooms=s.rooms.filter(x=>x!==r);
- for(const a of [...s.patients,...s.staff])if(a.room===id){a.room=null;a.path=[];a.x=doorOutside(r).x+.5;a.z=doorOutside(r).z+.5;if(a.state)a.state='queue';}s.revision++;return {ok:true};
+ for(const a of [...s.patients,...s.staff])if(a.room===id){const inside=a.x>=r.x&&a.x<r.x+r.w&&a.z>=r.z&&a.z<r.z+r.h;a.room=null;a.path=[];if(inside){a.x=doorOutside(r).x+.5;a.z=doorOutside(r).z+.5;}if(a.state&&a.state!=='amenity')a.state='queue';}s.revision++;return {ok:true};
 }
 export function roomStatus(s,r){
  const t=ROOM_TYPES[r.type],items=roomItems(s,r),missing=t.required.filter(k=>!items.some(i=>i.type===k));
  if(missing.length)return {ready:false,label:'Needs '+missing.map(k=>EQUIPMENT[k].name.toLowerCase()).join(' + '),missing};
+ if(r.upgrading>0)return {ready:false,label:'Refitting · '+Math.ceil(r.upgrading)+'s',missing:[]};
  const nav=navigation(s);if(!nav.connected.has(r.id))nav.connected.set(r.id,!!pathfind(s,ENTRY,r.door));
  if(!nav.connected.get(r.id))return {ready:false,label:'Door is blocked',missing:[]};if(r.condition<=10)return {ready:false,label:'Machine broken — hire a caretaker',missing:[]};
- const a=s.staff.find(a=>a.id===r.staff);if(t.staff&&!a)return {ready:false,label:'Needs a '+t.staff,missing:[]};if(a?.resting)return {ready:false,label:'Staff taking a break',missing:[]};return {ready:true,label:t.staff?'Open · '+a.name:'Open',missing:[]};
+ const a=s.staff.find(a=>a.id===r.staff);if(t.staff&&!a)return {ready:false,label:'Needs a '+t.staff,missing:[]};if(a?.training)return {ready:false,label:'Employee in training',missing:[]};if(a?.resting)return {ready:false,label:'Staff taking a break',missing:[]};return {ready:true,label:r.closed?'Intake paused':t.staff?'Open · '+a.name:'Open',missing:[]};
 }
 function workCell(s,r){
  const cells=[];for(let z=r.z;z<r.z+r.h;z++)for(let x=r.x;x<r.x+r.w;x++)if(!itemAt(s,x,z)&&!(x===r.door.x&&z===r.door.z))cells.push({x,z});
@@ -163,7 +130,7 @@ function workCell(s,r){
 }
 function patientCell(s,r,p){
  const staff=s.staff.find(a=>a.id===r.staff),occupied=s.patients.filter(a=>a!==p&&a.room===r.id&&['enter','service'].includes(a.state));
- const primary=roomItems(s,r).find(i=>i.type===(r.type==='ward'?'bed':ROOM_TYPES[r.type].required[0]));
+ const primary=s.items.find(i=>i.id===p.bed)||roomItems(s,r).find(i=>i.type===(r.type==='ward'?'bed':ROOM_TYPES[r.type].required[0]));
  const target=primary?{x:primary.x,z:primary.z}:{x:r.x+r.w/2,z:r.z+r.h/2},candidates=[];
  for(let z=r.z;z<r.z+r.h;z++)for(let x=r.x;x<r.x+r.w;x++){
   if(itemAt(s,x,z)||x===r.door.x&&z===r.door.z||staff&&Math.floor(staff.x)===x&&Math.floor(staff.z)===z||occupied.some(a=>a.destination?.x===x&&a.destination?.z===z))continue;
@@ -185,66 +152,133 @@ export function assignStaff(s){
 }
 export function hire(s,type){
  const t=STAFF_TYPES[type];if(!t)return fail('Choose a staff role.');if(s.cash<t.cost)return fail('Not enough cash for recruitment.');if(s.staff.length>=24)return fail('The staffing limit is 24.');
- const id=s.nextId++,a={id,type,name:FIRST[id%FIRST.length]+' '+LAST[id%LAST.length],x:13.5,z:20.5,energy:100,skill:1+random(s)*.3,room:null,path:[],resting:false};spend(s,t.cost);s.staff.push(a);assignStaff(s);log(s,t.name+' hired',a.name+' has joined the team.','good');return {ok:true,staff:a};
+ const id=s.nextId++,a={id,type,name:FIRST[id%FIRST.length]+' '+LAST[id%LAST.length],x:13.5,z:20.5,energy:100,skill:1+random(s)*.3,room:null,path:[],resting:false};spend(s,t.cost);s.staff.push(a);management.initializeDepth(s);assignStaff(s);log(s,t.name+' hired',a.name+' has joined the team.','good');return {ok:true,staff:a};
 }
 export function fire(s,id){const a=s.staff.find(a=>a.id===id);if(!a)return fail('Choose a staff member.');for(const r of s.rooms)if(r.staff===id)r.staff=null;s.staff=s.staff.filter(x=>x.id!==id);assignStaff(s);return {ok:true};}
-export const dailyCost=s=>260+s.rooms.length*45+s.staff.reduce((n,a)=>n+STAFF_TYPES[a.type].wage,0);
+export const dailyCost=s=>260+s.rooms.reduce((n,r)=>n+45+(r.level||0)*35,0)+s.staff.reduce((n,a)=>n+management.wage(a),0)+(s.policies.maintenance==='preventive'?100:0);
 export function takeLoan(s){if(s.loan)return fail('Repay the current loan first.');s.loan=20000;s.cash+=20000;log(s,'Bank loan','A $20,000 lifeline. Daily interest is $200.');return {ok:true};}
 export function repayLoan(s){if(!s.loan)return fail('There is no outstanding loan.');if(s.cash<s.loan)return fail('You need '+money(s.loan)+' to repay the loan.');s.cash-=s.loan;s.loan=0;return {ok:true};}
 export function setOpen(s,v){s.open=!!v;log(s,v?'Doors open':'Admissions paused',v?'Reception is ready for the first patients.':'Existing patients will continue treatment.');}
-function spawn(s){if(s.patients.length>=55)return;const choices=CONDITIONS.filter(c=>s.cured>=(c.unlock||0)),c=choices[Math.floor(random(s)*choices.length)],id=s.nextId++;s.patients.push({id,name:FIRST[id%FIRST.length]+' '+LAST[(id*3)%LAST.length],condition:CONDITIONS.indexOf(c),health:90,patience:100,x:13.5,z:20.5,stage:'reception',state:'walk',room:null,path:[],progress:0,billed:0,routeRevision:-1,wait:0,angle:Math.PI});}
+function spawn(s,contract=null){if(s.patients.length>=55)return false;const choices=CONDITIONS.filter(c=>s.cured>=(c.unlock||0)),c=contract?CONDITIONS[contract.condition]:choices[Math.floor(random(s)*choices.length)],id=s.nextId++;s.patients.push({id,name:FIRST[id%FIRST.length]+' '+LAST[(id*3)%LAST.length],condition:CONDITIONS.indexOf(c),health:contract?58:90,patience:100,x:13.5,z:20.5,stage:'reception',state:'walk',room:null,path:[],progress:0,billed:0,routeRevision:-1,wait:0,angle:Math.PI,thirst:20+random(s)*15,bladder:15+random(s)*15,confidence:0,attempts:0,urgency:contract?4:1,contract:contract?.uid||null,amenity:null,seat:null,bed:null,arrived:s.time});return true;}
 function queuePosition(s,p){
- const index=s.patients.filter(q=>q.stage===p.stage&&q.room===p.room&&q.id<p.id&&q.state!=='exit').length;
+ const index=s.patients.filter(q=>q.stage===p.stage&&q.room===p.room&&management.queuePriority(s,q,p)<0&&q.state!=='exit').length;
  if(p.stage==='reception')return {x:13+index%2,z:18+Math.floor(index/2)%3};
+ if(p.seat){const bench=s.items.find(i=>i.id===p.seat.id);if(bench&&pathfind(s,p,p.seat.destination))return p.seat.destination;p.seat=null;}
+ for(const bench of s.items.filter(i=>i.type==='bench')){
+  if(s.patients.filter(q=>q!==p&&q.seat?.id===bench.id).length>=2)continue;
+  const dest=amenityApproach(s,p,bench);if(dest&&dist(dest,p)<9){p.seat={id:bench.id,destination:dest};return dest;}
+ }
  const r=s.rooms.find(r=>r.id===p.room);if(!r)return {x:12+p.id%4,z:4+p.id%13};
  const o=doorOutside(r),c=[];for(let z=Math.max(1,o.z-3);z<=Math.min(DEPTH-2,o.z+3);z++)for(let x=Math.max(1,o.x-3);x<=Math.min(WIDTH-2,o.x+3);x++)if(!roomAt(s,x,z)&&!itemAt(s,x,z))c.push({x,z});c.sort((a,b)=>dist(a,o)-dist(b,o));return c[index%c.length]||o;
 }
-function candidateRoom(s,p){const c=s.rooms.filter(r=>r.type===p.stage&&roomStatus(s,r).ready);c.sort((a,b)=>s.patients.filter(q=>q.room===a.id).length-s.patients.filter(q=>q.room===b.id).length||a.id-b.id);return c.find(r=>pathfind(s,p,doorOutside(r)))||null;}
+function candidateRoom(s,p){const c=s.rooms.filter(r=>r.type===p.stage&&!r.closed&&roomStatus(s,r).ready);c.sort((a,b)=>s.patients.filter(q=>q.room===a.id).length-s.patients.filter(q=>q.room===b.id).length||a.id-b.id);return c.find(r=>pathfind(s,p,doorOutside(r)))||null;}
 function finish(s,p){
- const r=s.rooms.find(r=>r.id===p.room),t=ROOM_TYPES[r.type];earn(s,t.fee);p.billed+=t.fee;r.completed++;r.condition=Math.max(0,r.condition-(r.type==='gp'?1:2));
- if(p.stage==='gp'){p.diagnosed=true;p.stage=CONDITIONS[p.condition].treatment;p.room=null;p.state='queue';p.progress=0;p.path=[];}
- else{s.cured++;s.reputation=clamp(s.reputation+1.2,0,100);p.health=100;p.state='exit';p.stage='leaving';p.room=null;route(s,p,ENTRY);log(s,'Another happy discharge',p.name+' recovered from '+CONDITIONS[p.condition].name.toLowerCase()+'. +'+money(t.fee),'good');if(s.cured===6)log(s,'Diagnostics unlocked','Scanner rooms and specialist recruitment are now available.','good');if(s.cured===16)log(s,'Surgery unlocked','Spontaneous paperwork can now be removed surgically.','good');}
+ const r=s.rooms.find(r=>r.id===p.room),t=ROOM_TYPES[r.type],a=s.staff.find(a=>a.id===r.staff);
+ a.experience+=management.researched(s,'training')?2:1;if(a.experience%12===0)a.skill=Math.min(1.9,a.skill+.02);
+ r.completed++;r.condition=Math.max(0,r.condition-(r.type==='gp'?1:2)*(management.researched(s,'engineering')?.65:1)/(1+r.level*.15));
+ const fee=Math.round(t.fee*s.policies.fees/100),expense=r.type==='gp'?8:r.type==='pharmacy'?25:r.type==='ward'?40:r.type==='scanner'?65:120;
+ spend(s,expense);
+ if(p.stage==='gp'){
+  if(!p.diagnosed){earn(s,fee);p.billed+=fee;}
+  p.confidence=Math.min(.99,management.diagnosisConfidence(s,r,a)+p.attempts*.03);p.diagnosed=true;p.stage=CONDITIONS[p.condition].treatment;p.room=null;p.state='queue';p.progress=0;p.path=[];p.seat=null;
+ }else if(random(s)>management.treatmentChance(s,r,a,p)){
+  s.failedTreatments++;p.attempts++;p.health=Math.max(1,p.health-8);p.patience=Math.max(0,p.patience-8);p.stage='gp';p.room=null;p.state='queue';p.progress=0;p.path=[];p.bed=null;
+  log(s,'A second opinion',p.name+' needs a revised diagnosis after unsuccessful treatment. No treatment fee was charged.','bad');
+  if(p.attempts>=3)abandon(s,p);
+ }else{
+  earn(s,fee);p.billed+=fee;s.cured++;if(s.contract&&p.contract===s.contract.uid)s.contract.cured++;
+  s.satisfaction=s.satisfaction*.92+clamp(p.patience+(s.policies.fees===80?8:s.policies.fees===125?-12:0),0,100)*.08;
+  s.reputation=clamp(s.reputation+1.2+(p.patience>80?.15:0),0,100);p.health=100;p.state='exit';p.stage='leaving';p.room=null;p.bed=null;p.seat=null;route(s,p,ENTRY);
+  log(s,'Another happy discharge',p.name+' recovered from '+CONDITIONS[p.condition].name.toLowerCase()+'. +'+money(fee),'good');if(s.cured===6)log(s,'Diagnostics unlocked','Scanner rooms and specialist recruitment are now available.','good');if(s.cured===16)log(s,'Surgery unlocked','Spontaneous paperwork can now be removed surgically.','good');
+ }
 }
-function abandon(s,p,dead=false){if(p.state==='exit')return;s.lost++;if(dead){s.deaths++;spend(s,2500);}s.reputation=clamp(s.reputation-(dead?7:3),0,100);p.state='exit';p.stage='leaving';p.room=null;p.path=[];route(s,p,ENTRY);log(s,dead?'An unfortunate outcome':'Patient leaving',p.name+(dead?' did not receive care in time.':' ran out of patience.'),'bad');}
+function abandon(s,p,dead=false){if(p.state==='exit')return;s.lost++;if(dead){s.deaths++;spend(s,2500);}s.reputation=clamp(s.reputation-(dead?7:3),0,100);p.state='exit';p.stage='leaving';p.room=null;p.path=[];p.amenity=null;p.seat=null;p.bed=null;route(s,p,ENTRY);log(s,dead?'An unfortunate outcome':'Patient leaving',p.name+(dead?' did not receive care in time.':' left without completing treatment.'),'bad');}
+export function sendHome(s,id){const p=s.patients.find(p=>p.id===id);if(!p||p.state==='exit')return fail('Choose a patient still in the hospital.');abandon(s,p);return {ok:true};}
+function amenityApproach(s,p,item){
+ const f=footprint(item.type,item.rotation),cells=[];
+ for(let z=item.z-1;z<=item.z+f.h;z++)for(let x=item.x-1;x<=item.x+f.w;x++){
+  if(!within(x,z)||itemAt(s,x,z)||x!==item.x-1&&x!==item.x+f.w&&z!==item.z-1&&z!==item.z+f.h)continue;
+  if(s.patients.some(q=>q!==p&&[q.amenity?.destination,q.seat?.destination].some(t=>t&&t.x===x&&t.z===z)))continue;cells.push({x,z});
+ }
+ cells.sort((a,b)=>dist(a,p)-dist(b,p));return cells.find(c=>pathfind(s,p,c))||null;
+}
+function startNeed(s,p){
+ if(p.health<35||s.time<(p.needRetry||0))return false;p.needRetry=s.time+5;
+ const kind=p.bladder>p.thirst&&p.bladder>=70?'toilet':p.thirst>=70?'drink':p.bladder>=70?'toilet':null;if(!kind)return false;
+ const candidates=s.items.filter(i=>i.type===(kind==='toilet'?'toilet':'vending')&&!s.patients.some(q=>q!==p&&q.amenity?.id===i.id));candidates.sort((a,b)=>dist(a,p)-dist(b,p));
+ for(const item of candidates){const room=s.rooms.find(r=>r.id===item.room);if(kind==='toilet'&&(!room||room.closed||!roomStatus(s,room).ready))continue;const destination=amenityApproach(s,p,item);if(!destination)continue;
+  p.state='amenity';p.amenity={id:item.id,kind,destination,progress:0,duration:kind==='toilet'?7/(1+(room.level||0)*.15):4};p.seat=null;route(s,p,destination);return true;}
+ return false;
+}
+function litter(s,p){
+ if(s.items.some(i=>i.type==='bin'&&dist(i,p)<4)||s.litter.length>=80)return;
+ s.litter.push({id:s.nextId++,x:Math.floor(p.x)+.5,z:Math.floor(p.z)+.5});s.litterRevision++;
+}
+function amenityTick(s,p,dt){
+ const a=p.amenity,item=s.items.find(i=>i.id===a?.id);
+ if(!item){p.state='queue';p.amenity=null;p.path=[];return;}
+ if(p.routeRevision!==s.revision&&!route(s,p,a.destination)){p.state='queue';p.amenity=null;return;}
+ move(s,p,dt);
+ if(!p.path.length&&dist(p,{x:a.destination.x+.5,z:a.destination.z+.5})<.2){
+  a.progress+=dt;if(a.progress>=a.duration){if(a.kind==='drink'){p.thirst=8;earn(s,12);litter(s,p);}else p.bladder=5;p.patience=clamp(p.patience+(management.researched(s,'hospitality')?20:12),0,100);p.amenity=null;p.state='queue';p.path=[];}
+ }
+}
 function staffTick(s,a,dt){
+ a.morale=clamp(a.morale+dt*(a.resting?.12:a.energy<25?-.055:.003)+dt*a.payBonus*.025+(s.cleanliness<60?-dt*.03:0),0,100);
+ if(a.morale<25&&!a.moraleWarned){a.moraleWarned=true;log(s,'Staff morale is falling',a.name+' needs rest, cleaner surroundings or better pay.','bad');}
+ if(a.morale>55)a.moraleWarned=false;
+ if(a.training){a.training.remaining-=dt*(a.trait==='learner'?1.4:1)*(management.researched(s,'training')?1.35:1);a.energy=clamp(a.energy+dt*.4,0,100);if(a.training.remaining<=0){a.training=null;a.rank++;a.skill=Math.min(2,a.skill+.14);a.morale=clamp(a.morale+10,0,100);a.routeRevision=-1;log(s,'Training completed',a.name+' has reached professional level '+(a.rank+1)+'.','good');}return;}
  if(a.type==='janitor'){
-  const r=s.rooms.filter(r=>r.condition<90).sort((a,b)=>a.condition-b.condition)[0];
-  if(r){const t=workCell(s,r);if(a.targetRoom!==r.id||a.routeRevision!==s.revision){a.targetRoom=r.id;route(s,a,t);}move(s,a,dt,1.8);if(!a.path.length)r.condition=clamp(r.condition+dt*6,0,100);}
+  const threshold=s.policies.maintenance==='preventive'?95:s.policies.maintenance==='economy'?45:80;
+  const r=s.rooms.filter(r=>r.condition<threshold&&!r.upgrading).sort((a,b)=>a.condition-b.condition)[0];
+  const rubbish=s.litter.filter(l=>!s.staff.some(b=>b!==a&&b.cleanTarget===l.id)).sort((l,k)=>dist(l,a)-dist(k,a))[0];
+  if(rubbish&&(!r||r.condition>20)){
+   if(a.cleanTarget!==rubbish.id||a.routeRevision!==s.revision){a.cleanTarget=rubbish.id;a.cleanProgress=0;route(s,a,rubbish);}
+   move(s,a,dt,1.8*(1+a.rank*.08));if(!a.path.length&&dist(a,rubbish)<.2){a.cleanProgress+=dt*a.skill;if(a.cleanProgress>=1.2){s.litter=s.litter.filter(l=>l.id!==rubbish.id);s.litterRevision++;a.cleanTarget=null;}}return;
+  }
+  a.cleanTarget=null;
+  if(r){const t=workCell(s,r);if(a.targetRoom!==r.id||a.routeRevision!==s.revision){a.targetRoom=r.id;route(s,a,t);}move(s,a,dt,1.8*(1+a.rank*.08));if(!a.path.length)r.condition=clamp(r.condition+dt*6*a.skill,0,100);}
   else{if(!a.path.length&&dist(a,{x:14.5,z:16.5})>1)route(s,a,{x:14,z:16});move(s,a,dt);}
-  s.cleanliness=clamp(s.cleanliness+dt*.5,0,100);return;
+  return;
  }
  const r=s.rooms.find(r=>r.id===a.room);if(!r){a.energy=clamp(a.energy+dt*.3,0,100);return;}
- const rest=s.rooms.find(r=>r.type==='staff'&&roomStatus(s,r).ready);
+ const rest=s.rooms.find(r=>r.type==='staff'&&!r.closed&&roomStatus(s,r).ready&&s.staff.filter(b=>b!==a&&b.resting&&b.restRoom===r.id).length<roomItems(s,r).filter(i=>i.type==='sofa').length*2);
  if(!a.resting&&a.energy<22&&rest){a.resting=true;a.restRoom=rest.id;route(s,a,workCell(s,rest));}
- if(a.resting){if(!s.rooms.some(r=>r.id===a.restRoom)){a.resting=false;route(s,a,workCell(s,r));}else{move(s,a,dt);if(!a.path.length)a.energy=clamp(a.energy+dt*5,0,100);if(a.energy>=95){a.resting=false;route(s,a,workCell(s,r));}return;}}
- if(a.routeRevision!==s.revision)route(s,a,workCell(s,r));move(s,a,dt);a.energy=clamp(a.energy-dt*.045,5,100);
+ if(a.resting){const lounge=s.rooms.find(r=>r.id===a.restRoom);if(!lounge){a.resting=false;route(s,a,workCell(s,r));}else{move(s,a,dt);if(!a.path.length)a.energy=clamp(a.energy+dt*5*(1+lounge.level*.15),0,100);if(a.energy>=95){a.resting=false;route(s,a,workCell(s,r));}return;}}
+ if(a.routeRevision!==s.revision)route(s,a,workCell(s,r));move(s,a,dt);a.energy=clamp(a.energy-dt*.045*(a.trait==='tireless'?.8:1),5,100);
 }
 export function tick(s,dt){
  if(s.ended||!Number.isFinite(dt)||dt<=0)return;dt=Math.min(dt,.5);s.time+=dt;
- const day=Math.floor(s.time/DAY_LENGTH)+1;if(day!==s.day){const cost=dailyCost(s)+(s.loan?200:0);spend(s,cost);s.day=day;s.lastReport={day:day-1,cured:s.cured,earned:s.earned,payroll:cost,cash:s.cash};s.history.push(s.lastReport);s.history=s.history.slice(-14);log(s,'Day '+s.day+' · morning accounts','Payroll and running costs: '+money(cost)+'.');}
- s.arrival-=dt;if(s.open&&s.arrival<=0){spawn(s);s.arrival=Math.max(7,15-s.reputation*.055);}
+ const day=Math.floor(s.time/DAY_LENGTH)+1;if(day!==s.day){const cost=dailyCost(s)+(s.loan?200:0);spend(s,cost);s.day=day;s.lastReport={day:day-1,cured:s.cured-s.dayStart.cured,earned:s.earned-s.dayStart.earned,spent:s.spent-s.dayStart.spent,payroll:cost,cash:s.cash,lost:s.lost-s.dayStart.lost};s.dayStart={earned:s.earned,spent:s.spent,cured:s.cured,lost:s.lost};s.history.push(s.lastReport);s.history=s.history.slice(-14);log(s,'Day '+s.day+' · morning accounts','Payroll and running costs: '+money(cost)+'.');}
+ s.arrival-=dt;if(s.open&&s.arrival<=0){spawn(s);s.arrival=Math.max(7,15-s.reputation*.055)*(s.policies.fees===80?.82:s.policies.fees===125?1.22:1);}
+ if(s.contract?.pending>0&&spawn(s,s.contract))s.contract.pending--;
  s.dispatch-=dt;const dispatch=s.dispatch<=0;if(dispatch){s.dispatch=1;assignStaff(s);}for(const a of s.staff)staffTick(s,a,dt);
- const comforts=s.items.filter(i=>['bench','plant','vending','radiator'].includes(i.type)),toilets=s.rooms.some(r=>r.type==='toilets'&&roomStatus(s,r).ready);
- s.cleanliness=clamp(s.cleanliness-dt*s.patients.length*.002,0,100);
+ const comforts=s.items.filter(i=>['plant','radiator'].includes(i.type));
+ const targetClean=clamp(100-s.litter.length*5-s.patients.length*.15,0,100);s.cleanliness+=clamp(targetClean-s.cleanliness,-dt*1.5,dt*.7);
  for(const p of [...s.patients]){
   if(p.state==='exit'){if(p.routeRevision!==s.revision)route(s,p,ENTRY);move(s,p,dt,1.8);if(!p.path.length&&dist(p,{x:13.5,z:20.5})<.2)s.patients=s.patients.filter(q=>q!==p);continue;}
-  p.health=Math.max(0,p.health-dt*.035);const comfort=comforts.some(i=>dist(i,p)<4);p.patience=clamp(p.patience-dt*(p.state==='service'?.025:comfort?.055:.15)*(s.cleanliness<60?1.5:1)*(toilets?.8:1),0,100);
+  p.health=Math.max(0,p.health-dt*(p.urgency>=4?.09:.035));p.thirst=clamp(p.thirst+dt*.17,0,100);p.bladder=clamp(p.bladder+dt*.13,0,100);
+  const comfort=comforts.some(i=>dist(i,p)<4)||p.seat&&!p.path.length,kindStaff=s.staff.some(a=>a.trait==='kind'&&dist(a,p)<4);
+  p.patience=clamp(p.patience-dt*(p.state==='service'?.025:comfort?.055:.15)*(s.cleanliness<60?1.5:1)*(s.policies.fees===125?1.2:s.policies.fees===80?.9:1)*(p.thirst>85||p.bladder>85?1.8:1)*(management.researched(s,'hospitality')?.8:1)+(kindStaff?dt*.035:0),0,100);
   if(p.patience<=0||p.health<=0){abandon(s,p,p.health<=0);continue;}
+  if(p.state==='amenity'){amenityTick(s,p,dt);continue;}
+  if(dispatch&&p.state==='queue'&&startNeed(s,p)){amenityTick(s,p,dt);continue;}
   if(p.stage==='reception'){
    const ahead=s.patients.some(q=>q.stage==='reception'&&q.id<p.id),target=ahead?queuePosition(s,p):{x:13,z:18};
    if(dispatch&&(p.routeRevision!==s.revision||!p.path.length&&dist(p,{x:target.x+.5,z:target.z+.5})>.2))route(s,p,target);move(s,p,dt);
    if(!ahead&&!p.path.length&&dist(p,{x:13.5,z:18.5})<.2){p.progress+=dt;if(p.progress>=2.8){p.stage='gp';p.state='queue';p.progress=0;p.path=[];p.routeRevision=-1;}}continue;
   }
   let r=s.rooms.find(r=>r.id===p.room);
-  if(dispatch&&(!r||!roomStatus(s,r).ready)&&p.state!=='service'){const replacement=candidateRoom(s,p);if(replacement?.id!==p.room){p.room=replacement?.id||null;p.path=[];p.routeRevision=-1;}r=replacement;}
+  if(dispatch&&(!r||!roomStatus(s,r).ready||r.closed&&p.state==='queue')&&p.state!=='service'){const replacement=candidateRoom(s,p);if(replacement?.id!==p.room){p.room=replacement?.id||null;p.path=[];p.routeRevision=-1;}r=replacement;}
   if(!r){if(dispatch&&(!p.path.length||p.routeRevision!==s.revision))route(s,p,queuePosition(s,p));move(s,p,dt);p.wait+=dt;continue;}
-  const a=s.staff.find(a=>a.id===r.staff),slots=r.type==='ward'?roomItems(s,r).filter(i=>i.type==='bed').length:1,active=s.patients.filter(q=>q.room===r.id&&(q.state==='service'||q.state==='enter')),prior=s.patients.some(q=>q.room===r.id&&q.id<p.id&&q.state==='queue');
-  if(p.state==='queue'&&active.length<slots&&!prior&&roomStatus(s,r).ready&&a&&!a.path.length){p.state='enter';p.destination=patientCell(s,r,p);route(s,p,p.destination);}
+  const a=s.staff.find(a=>a.id===r.staff),slots=r.type==='ward'?roomItems(s,r).filter(i=>i.type==='bed').length:1,active=s.patients.filter(q=>q.room===r.id&&(q.state==='service'||q.state==='enter')),prior=s.patients.some(q=>q.room===r.id&&management.queuePriority(s,q,p)<0&&q.state==='queue');
+  if(p.state==='queue'&&active.length<slots&&!prior&&!r.closed&&roomStatus(s,r).ready&&a&&!a.path.length){p.state='enter';p.seat=null;if(r.type==='ward')p.bed=roomItems(s,r).find(i=>i.type==='bed'&&!active.some(q=>q.bed===i.id))?.id||null;p.destination=patientCell(s,r,p);route(s,p,p.destination);}
   if(p.state==='queue'){const t=queuePosition(s,p);if(dispatch&&(p.routeRevision!==s.revision||!p.path.length&&dist(p,{x:t.x+.5,z:t.z+.5})>.3))route(s,p,t);move(s,p,dt);p.wait+=dt;}
   else if(p.state==='enter'){if(p.routeRevision!==s.revision){p.destination=patientCell(s,r,p);route(s,p,p.destination);}move(s,p,dt);if(!p.path.length&&roomAt(s,Math.floor(p.x),Math.floor(p.z))?.id===r.id){p.state='service';p.progress=0;}}
-  else if(p.state==='service'&&roomStatus(s,r).ready&&a&&!a.path.length){p.progress+=dt*a.skill*(.55+a.energy*.0045);a.energy=Math.max(5,a.energy-dt*.45);if(p.progress>=ROOM_TYPES[r.type].time)finish(s,p);}
+  else if(p.state==='service'&&roomStatus(s,r).ready&&a&&!a.path.length){p.progress+=dt*a.skill*(.55+a.energy*.0045)*(a.trait==='quick'?1.1:1)*(a.morale<25?.85:1);a.energy=Math.max(5,a.energy-dt*.45*(a.trait==='tireless'?.8:1));if(p.progress>=management.serviceDuration(s,r))finish(s,p);}
  }
- if(s.cured>=30&&s.reputation>=65&&s.rooms.length>=5&&!s.won){s.won=true;log(s,'A hospital worth coming home from','30 patients cured, five rooms, and a reputation to be proud of. Keep building.','good');}
+ const researchPower=s.staff.filter(a=>a.type==='researcher'&&!a.resting&&!a.training&&!a.path.length&&s.rooms.some(r=>r.id===a.room&&!r.closed&&roomStatus(s,r).ready)).reduce((n,a)=>n+a.skill*(.5+a.energy*.005)*(1+s.rooms.find(r=>r.id===a.room).level*.15),0);
+ management.developmentTick(s,dt,researchPower);
  if(s.cash<-15000)s.ended='The hospital is insolvent. Secure a loan before the cash runs out, or start again.';
 }
 export function objectives(s){const ready=t=>s.rooms.some(r=>r.type===t&&roomStatus(s,r).ready);return [
@@ -262,5 +296,5 @@ export function validSave(s){
  if(!s.rooms.every(r=>ROOM_TYPES[r.type]&&[r.x,r.z,r.w,r.h].every(integer)&&r.w>=ROOM_TYPES[r.type].min&&r.h>=ROOM_TYPES[r.type].min&&within(r.x,r.z)&&within(r.x+r.w-1,r.z+r.h-1)&&r.door&&within(r.door.x,r.door.z)&&['north','south','east','west'].includes(r.door.side)&&Number.isFinite(r.condition)))return false;
  if(!s.items.every(i=>EQUIPMENT[i.type]&&within(i.x,i.z)&&integer(i.rotation)&&i.rotation>=0&&i.rotation<4))return false;
  if(![...s.staff,...s.patients].every(a=>Number.isFinite(a.x)&&Number.isFinite(a.z)&&a.x>=0&&a.x<WIDTH&&a.z>=0&&a.z<DEPTH&&Array.isArray(a.path)&&a.path.every(p=>within(p.x,p.z))))return false;
- return s.staff.every(a=>STAFF_TYPES[a.type]&&Number.isFinite(a.energy))&&s.patients.every(p=>CONDITIONS[p.condition]&&Number.isFinite(p.health)&&Number.isFinite(p.patience))&&Array.isArray(s.log);
+ return s.staff.every(a=>STAFF_TYPES[a.type]&&Number.isFinite(a.energy))&&s.patients.every(p=>CONDITIONS[p.condition]&&Number.isFinite(p.health)&&Number.isFinite(p.patience))&&Array.isArray(s.log)&&management.depthSaveValid(s);
 }
