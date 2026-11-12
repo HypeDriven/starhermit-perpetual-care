@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/model.test.mjs",
+    "test": "node --test tests/model.test.mjs tests/localization.test.mjs",
     "check": "node tools/package-web.mjs --check",
     "package": "node tools/package-web.mjs",
     "test:browser": "node tools/browser-play.mjs .",

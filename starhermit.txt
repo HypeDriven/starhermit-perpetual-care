@@ -32,3 +32,7 @@ control.help=F2 | Open management handbook
 control.save=F6 | Save hospital
 control.management=KeyM | Open hospital management desk
 cache..=0
+
+# Game language (saved per player); Automatic follows the account/device.
+control.localization=F3 | Language
+engine.group.localization=Interface

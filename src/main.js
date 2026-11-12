@@ -1,4 +1,11 @@
-import { frame, onStart, onUpdate, onQuit, onSuspend, openMenu } from 'starhermit:engine';
+import { localizedDrawOptions as __l10nDrawOptions } from "./l10n/font.js";
+import { withLanguageRender as __l10nRender } from "./l10n/menu.js";
+// localization-runtime:attached
+import { localizedFont as __l10nFont } from "./l10n/font.js";
+// display-localization:attached
+import { localizedText as __displayText, wrapDisplayText as __wrapDisplay, preserveUserText as __keepDisplayText } from "./l10n/text.js";
+import { frame, onStart, onUpdate, onQuit, onSuspend } from 'starhermit:engine';
+import { openLocalizedOptions as __l10nOptions } from './l10n/menu.js';
 import * as draw from 'starhermit:draw';
 import { onAction, onGesture, onPointerButton, onWheel, isDown, pointer, setCursor } from 'starhermit:input';
 import { storage } from 'starhermit:storage';
@@ -108,10 +115,13 @@ onAction(e=>{
 // the same logical coordinates as the text and shapes they surround.
 function rect(x,y,w,h,c,r=0){if(r)draw.roundRect(x*U,y*U,w*U,h*U,r*U,c);else draw.rect(x*U,y*U,w*U,h*U,c);}
 function line(x,y,x2,y2,c=C.line,lw=1){draw.line(x*U,y*U,x2*U,y2*U,c,lw*U);}
-function text(t,x,y,size=13,c=C.ink,weight=400,font='sans-serif',align='start'){draw.text(String(t),x*U,y*U,{size:size*U,color:c,weight,font,align});}
+function text(t,x,y,size=13,c=C.ink,weight=400,font='sans-serif',align='start'){draw.text(__displayText(String(t)),x*U,y*U,__l10nDrawOptions({size:size*U,color:c,weight,font: __l10nFont(font),align}));}
 function pill(t,x,y,w,c=C.sage){rect(x,y,w,23,c,5);text(t,x+w/2,y+5,10,C.ink,600,'sans-serif','center');}
 function label(t,x,y,c=C.muted){text(t,x,y,10,c,600);}
-function wrap(t,x,y,w,size=12,c=C.muted,lh=18){let row='',n=0;for(const word of String(t).split(' ')){const next=row?row+' '+word:word;if(draw.measureText(next,{size:size*U}).width>w*U&&row){text(row,x,y+n*lh,size,c);n++;row=word;}else row=next;}if(row)text(row,x,y+n*lh,size,c);return(n+1)*lh;}
+function wrap(t,x,y,w,size=12,c=C.muted,lh=18){
+ const lines=__wrapDisplay(String(t),w,value=>draw.measureText(__displayText(__keepDisplayText(value)),__l10nDrawOptions({size:size*U})).width/U);
+ lines.forEach((line,i)=>text(line,x,y+i*lh,size,c));return Math.max(1,lines.length)*lh;
+}
 function button(t,x,y,w,h,fn,style='plain',disabled=false){
  const p=pointer(),hot=p&&p.x/U>=x&&p.x/U<=x+w&&p.y/U>=y&&p.y/U<=y+h;
  const fill=disabled?'#e6e6dc':style==='primary'?C.green:style==='orange'?C.orange:style==='selected'?C.sage:hot?'#e8ecdE':C.white;
@@ -126,7 +136,7 @@ function header(){
  if(!mobile){line(300,17,300,52);text('ST. MARGIN HOSPITAL',320,19,11,C.muted,600);text('Your recovery is our recurring revenue.',320,39,11,C.muted);}
  if(!mobile&&s.contract){text(s.contract.name,620,19,13,C.green,600);text(M.contractProgress(s)+' / '+s.contract.target+' cures · '+Math.max(0,Math.ceil(s.contract.deadline-s.time))+'s remaining',620,40,11,C.orange);}
  else if(!mobile&&s.research.active){const r=s.research.active;text('Research: '+M.RESEARCH[r.id].name,620,19,13,C.green,600);text(Math.floor(r.progress/M.RESEARCH[r.id].work*100)+'% complete · '+s.research.completed.length+' discoveries',620,40,11,C.muted);}
- const bx=W-(mobile?168:338);button('?',W-54,16,34,35,()=>{modal='help';});button('Options',W-144,16,82,35,openMenu);
+ const bx=W-(mobile?168:338);button('?',W-54,16,34,35,()=>{modal='help';});button('Options',W-144,16,82,35,__l10nOptions);
  button('Manage',W-(mobile?236:376),16,mobile?84:92,35,()=>manage());
  if(!mobile){button('Save',W-214,16,62,35,()=>{save();notice('Hospital saved.');});button('New',W-276,16,54,35,()=>{modal='reset';});}
  const y=mobile?77:70,gap=mobile?W/4:(W-320)/4,start=mobile?20:320;
@@ -206,7 +216,7 @@ function inspectPanel(x,y,w,bottom){
   if(yy+40<bottom){button('Move door',x,yy,w,33,()=>{tool={kind:'door'};notice('Choose a wall tile next to the corridor.');});yy+=40;}
   if(yy+40<bottom)button('Demolish room',x,yy,w,33,()=>{modal='demolish';});
  }else if(selected?.kind==='patient'){
-  const p=s.patients.find(p=>p.id===selected.id);if(!p){selected=null;return;}text(p.name,x,y,21,C.ink,500,'serif');text(p.diagnosed?M.CONDITIONS[p.condition].name:'Awaiting diagnosis',x,y+29,12,C.orange);
+  const p=s.patients.find(p=>p.id===selected.id);if(!p){selected=null;return;}text(__keepDisplayText(p.name),x,y,21,C.ink,500,'serif');text(p.diagnosed?M.CONDITIONS[p.condition].name:'Awaiting diagnosis',x,y+29,12,C.orange);
   text(p.amenity?(p.amenity.kind==='drink'?'Getting a drink':'Visiting the toilets'):p.state==='service'?'Receiving treatment':'Next: '+(M.ROOM_TYPES[p.stage]?.name||'Reception'),x,y+51,11,C.ink);
   text((p.urgency>=4?'URGENT · ':'')+'Diagnosis '+Math.round(p.confidence*100)+'% · '+Math.floor(s.time-p.arrived)+'s on site',x,y+72,10,p.urgency>=4?C.red:C.muted);
   label('VITALITY '+Math.round(p.health)+'%',x,y+84);bar(x,y+101,w,p.health/100);label('PATIENCE '+Math.round(p.patience)+'%',x,y+116);bar(x,y+132,w,p.patience/100,p.patience<30?C.orange:C.green);
@@ -214,7 +224,7 @@ function inspectPanel(x,y,w,bottom){
   if(y+175<bottom)text(p.diagnosed?'Care: '+M.carePlan(p).map((t,i)=>(i<(p.careStep||0)?'✓ ':'')+M.ROOM_TYPES[t].short).join(' → '):'A diagnosis will reveal the treatment plan.',x,y+158,10,C.green);
   if(y+202<bottom)button('Send home · −3 reputation',x,y+173,w,28,()=>{result(M.sendHome(s,p.id),'Patient sent home.');selected=null;});
  }else if(selected?.kind==='staff'){
-  const a=s.staff.find(a=>a.id===selected.id);if(!a){selected=null;return;}text(a.name,x,y,22,C.ink,500,'serif');text(M.STAFF_TYPES[a.type].name+' · '+M.money(M.wage(a))+'/day',x,y+34,12,C.muted);label('ENERGY',x,y+65);bar(x,y+83,w,a.energy/100);label('MORALE '+Math.round(a.morale)+'% · '+M.TRAITS[a.trait].name,x,y+102);const r=s.rooms.find(r=>r.id===(a.room||a.covering));wrap(a.training?'In training · '+Math.ceil(a.training.remaining)+'s':a.resting?'Taking a well-earned break':r?'Assigned to '+M.ROOM_TYPES[r.type].name:'Waiting for a matching room',x,y+126,w,12);if(y+204<bottom)button('Training, pay & assignments',x,y+169,w,31,()=>manage('people'));
+  const a=s.staff.find(a=>a.id===selected.id);if(!a){selected=null;return;}text(__keepDisplayText(a.name),x,y,22,C.ink,500,'serif');text(M.STAFF_TYPES[a.type].name+' · '+M.money(M.wage(a))+'/day',x,y+34,12,C.muted);label('ENERGY',x,y+65);bar(x,y+83,w,a.energy/100);label('MORALE '+Math.round(a.morale)+'% · '+M.TRAITS[a.trait].name,x,y+102);const r=s.rooms.find(r=>r.id===(a.room||a.covering));wrap(a.training?'In training · '+Math.ceil(a.training.remaining)+'s':a.resting?'Taking a well-earned break':r?'Assigned to '+M.ROOM_TYPES[r.type].name:'Waiting for a matching room',x,y+126,w,12);if(y+204<bottom)button('Training, pay & assignments',x,y+169,w,31,()=>manage('people'));
  }else if(selected?.kind==='item'){
   const i=s.items.find(i=>i.id===selected.id);if(!i){selected=null;return;}const e=M.EQUIPMENT[i.type];text(e.name,x,y,21,C.ink,500,'serif');wrap(e.description,x,y+37,w,13);button('Move furnishing',x,y+76,w,29,()=>pickUp(i));button('Sell for '+M.money(e.cost*.5),x,y+112,w,34,()=>{result(M.removeItem(s,i.id),'Object sold.');selected=null;});
  }else{
@@ -303,7 +313,7 @@ function modalUI(){
   text('The board has concerns.',x+26,y+30,28,C.ink,500,'serif');wrap(s.ended,x+26,y+82,w-52,14);button('Start a new hospital',x+26,y+h-65,w-52,38,reset,'primary');
  }
 }
-onUpdate(dt=>{
+onUpdate(__l10nRender(dt=>{
  const f=frame();if(f.width<=0||f.height<=0)return;
  clock+=dt;toastTimer=Math.max(0,toastTimer-dt);saveTimer+=dt;
  if(!paused&&!modal&&f.focused&&!f.overlayOpen){let left=Math.min(dt,.15)*speed;while(left>0){const step=Math.min(.1,left);M.tick(s,step);left-=step;}}
@@ -324,4 +334,8 @@ onUpdate(dt=>{
  }else view.disposePreview();
  modalUI();sound.update(f.focused&&!f.overlayOpen);
  const hot=buttons.some(b=>!b.disabled&&p&&p.x/U>=b.x&&p.x/U<=b.x+b.w&&p.y/U>=b.y&&p.y/U<=b.y+b.h);setCursor(hot?'pointer':hoverTile&&tool.kind!=='select'?'crosshair':'default');
-});
+}));
+
+// localization-runtime:menu
+import { installLanguageMenu as __installLanguageMenu } from "./l10n/menu.js";
+__installLanguageMenu(false);
