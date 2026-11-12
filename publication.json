@@ -22,7 +22,7 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-07T12:50:52.366546+00:00",
+      "deployedAt": "2026-11-12T08:18:15.672005+00:00",
       "externalLaunchUrl": null,
       "engineVersion": "1.38.0",
       "deployWarning": null
@@ -36,15 +36,15 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-07T12:50:52.450Z",
-  "sourceCommit": "ae3606de252910faf9cc0d9e3f2fd0af5b56bce0",
-  "bytesReceived": 4470216,
-  "archiveSha256": "ff732db3e8c288dc1591863c6a3294a239582a8d79fed941e83543c627d2690c",
+  "publishedAt": "2026-11-12T08:18:19.959Z",
+  "sourceCommit": "399b17cdb37db68d9d195f56ceeebde5848c67fb",
+  "bytesReceived": 6669512,
+  "archiveSha256": "245b0f7509b8ec265d1bf757b6358de96d72a7d987e09eb33e32393148100e11",
   "result": {
     "clientPublished": true,
     "serverImageLoaded": false,
     "imageDigest": null,
-    "bytesReceived": 4470216,
+    "bytesReceived": 6669512,
     "mode": "replace",
     "filesRemoved": 0,
     "engineVersion": "1.38.0",
@@ -59,5 +59,71 @@
     "longSimulation": "Seven-day equipped hospital simulation completes care in every clinical department, automatically replenishes supplies, has no walkouts or deaths, and remains a valid save.",
     "live": "Published source modules, file index and manifest match local bytes. Public desktop and phone load in the real browser runtime without console errors or warnings."
   },
-  "version": "2.2.0"
+  "version": "2.2.0",
+  "indexSha256": "a8242c603b4844949c4e63f4a072e14c002443711aefdb72344a61e85b8ae991",
+  "liveVerification": {
+    "at": "2026-11-12T08:18:19.959Z",
+    "files": [
+      {
+        "file": "starhermit-files.json",
+        "sha256": "a8242c603b4844949c4e63f4a072e14c002443711aefdb72344a61e85b8ae991",
+        "status": 200
+      },
+      {
+        "file": "assets/localization/Japanese.otf",
+        "sha256": "024f38b791a542ea1483fcde333e3686324ffe9d1bd2f3f1ee2dfa7aa081b117",
+        "status": 200
+      },
+      {
+        "file": "assets/localization/Khmer.ttf",
+        "sha256": "4e266c57ff9d82ec1972565b49aaf038ccb98461a182b5a3ba3b41bebb24efb8",
+        "status": 200
+      },
+      {
+        "file": "assets/localization/SimplifiedChinese.otf",
+        "sha256": "345c850d23e4c6e636e3c7d2bf0b4789b5d79f3aba0812cdf2b44af3dda9f5ab",
+        "status": 200
+      },
+      {
+        "file": "assets/localization/Tamil.ttf",
+        "sha256": "89c6bca74d5a2e7a9acd7ae89bc0ab02d19ed2d9448c3d1c068fb53563f905f0",
+        "status": 200
+      },
+      {
+        "file": "assets/localization/TraditionalChinese.otf",
+        "sha256": "3bf7e13f6a81789c3459dee1473983131e2c6d9fe4b37fba9b1d4a502b9c13f7",
+        "status": 200
+      },
+      {
+        "file": "assets/localization/common.json",
+        "sha256": "f546fa5899d7dacf1ceedb0c0d2f7ebcccfbc1efc8dcbc619c2900d33c6f5b13",
+        "status": 200
+      },
+      {
+        "file": "assets/localization/fonts.json",
+        "sha256": "37beaea0dba54c9f2c45995cbf9fd19fad21719d701718c41d7e58dd7748ca13",
+        "status": 200
+      },
+      {
+        "file": "assets/localization/locales.json",
+        "sha256": "cc8fadfd5931f1495bacd1ac660e2e54464d01cc795c7e2893c4a06def3abcc3",
+        "status": 200
+      },
+      {
+        "file": "assets/strings.json",
+        "sha256": "5c7356bb4dd7a3b3461a3f97cbf8dc609da36a5053e8b02991b2ba4421f869cd",
+        "status": 200
+      },
+      {
+        "file": "index.html",
+        "sha256": "5adb62cc896d896fa7face8dce760c7775a295245118008572d1a3fc1658b7a4",
+        "status": 200
+      },
+      {
+        "file": "starhermit.txt",
+        "sha256": "aabe6f04dd001651a962f0a9013c96bb2beff093aa516c03be88b0d37364926d",
+        "status": 200
+      }
+    ]
+  }
 }
