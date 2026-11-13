@@ -61,7 +61,7 @@ The responsive touch layout provides the same construction tools. Swipe the cata
 
 ## Development and verification
 
-The package runs natively and in browsers through **StarHermit Engine 1.38.0**. It has no runtime npm dependencies. `src/model.js` handles construction, navigation and hospital life; `src/management.js` handles development, policy and contracts; `src/operations.js` handles stock, deliveries and care plans; all simulation modules are deterministic and independent of the engine. `src/catalogue.js` defines the content. `src/render.js` renders the hospital; `src/main.js` and `src/management-ui.js` provide its interface; `src/sound.js` plays audio on the engine's shared buses.
+The package runs natively and in browsers through **StarHermit Engine 1.39.0**. It has no runtime npm dependencies. `src/model.js` handles construction, navigation and hospital life; `src/management.js` handles development, policy and contracts; `src/operations.js` handles stock, deliveries and care plans; all simulation modules are deterministic and independent of the engine. `src/catalogue.js` defines the content. `src/render.js` renders the hospital; `src/main.js` and `src/management-ui.js` provide its interface; `src/sound.js` plays audio on the engine's shared buses.
 
 ```sh
 npm test                 # construction, routing, treatment, staffing, finances, saves
@@ -72,7 +72,7 @@ npm run test:management  # research, training, refits, policies and contracts
 npm run test:operations  # expansion, relocation, storage, ordering, flow and saves
 ```
 
-Set `STARHERMIT` to your engine executable if it is not in the standard `~/sh/runtime/1.38.0/` location. Browser checks use Playwright from this game or a neighboring project and the shared `~/games/tools/gpu-chrome.mjs` helper; `STARHERMIT_CHROME_HELPER` can override that helper.
+Set `STARHERMIT` to your engine executable if it is not in the standard `~/sh/runtime/1.39.0/` location. Browser checks use Playwright from this game or a neighboring project and the shared `~/games/tools/gpu-chrome.mjs` helper; `STARHERMIT_CHROME_HELPER` can override that helper.
 
 `node tools/gen-play.mjs`, `node tools/gen-play.mjs --phone`, `node tools/gen-play.mjs --depth` and `node tools/gen-play.mjs --operations` regenerate the construction, touch and management play scripts. Native checks execute them with `starhermit . --render-check --guest --script tests/publish.play --quality molecular`, substituting `tests/phone.play` or `tests/management.play` as appropriate. They exercise the actual construction and management interfaces, run treatments and persist progress.
 

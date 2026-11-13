@@ -27,7 +27,7 @@
     "favicon.ico": {"sha256": "5769b6e11e107bd04e46cfdbe24078b5c879dbe55c97742fc9150fbc90937684", "size": 8190},
     "favicon.png": {"sha256": "9a7b80264ca4b1def505f8f84ac20d5c2ada61efac5ac23ad69f176c82ad89d9", "size": 6351},
     "favicon.svg": {"sha256": "8fee6701c617f9a56a6ac38f458d47a2156cf303ee4f1d04a017c379d49a14c3", "size": 331},
-    "index.html": {"sha256": "5adb62cc896d896fa7face8dce760c7775a295245118008572d1a3fc1658b7a4", "size": 1945},
+    "index.html": {"sha256": "33fe0597b4cafdd7605be283e58c01ce102186e3044f4415d3170b14b3960b20", "size": 1945},
     "spec.md": {"sha256": "d3f1a3dae336c79a261f21c89eb5eb2d47c0ebe2ad347f973a16f0e3b81fcbbd", "size": 2137},
     "src/catalogue.js": {"sha256": "2b8c5be0591f37eedf9da79bf27e5d4483ad9fae6ddd479374ee202c55cc8b36", "size": 6076},
     "src/l10n/font.ts": {"sha256": "7f1628951943bd20cc3afa3ead0ad5ef2b5d9415683a7bd74953a40cbf5fd142", "size": 6298},
@@ -42,7 +42,7 @@
     "src/operations.js": {"sha256": "ac527aac3e608a3e4edf4b4e62671b13b0314be94f048ca48d234bf7b2029483", "size": 4874},
     "src/render.js": {"sha256": "74b7fd8880af54ce79bdffb46c8e79c25428caccba61c45ab6394e4a240465ae", "size": 17906},
     "src/sound.js": {"sha256": "bf1f1491e3b8fd3008dbb7a0b1fa3f679e9a925e40202162e7dd76e5aa80531e", "size": 1465},
-    "starhermit.txt": {"sha256": "aabe6f04dd001651a962f0a9013c96bb2beff093aa516c03be88b0d37364926d", "size": 1554}
+    "starhermit.txt": {"sha256": "631db983bfc3bff753155ef617eefd48ec7bba6697000ab2fd9ef381895fd9c9", "size": 1554}
   },
   "excluded": ["README.md", "coverart.png", "package.json", "publication.json", "tests/", "tools/"],
   "format": 1
