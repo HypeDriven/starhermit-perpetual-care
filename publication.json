@@ -22,9 +22,9 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-12T08:18:15.672005+00:00",
+      "deployedAt": "2026-11-13T08:41:30.739343+00:00",
       "externalLaunchUrl": null,
-      "engineVersion": "1.38.0",
+      "engineVersion": "1.39.0",
       "deployWarning": null
     },
     "description": "Build and run your own hospital. Expand and furnish departments, manage supplies and staff, research better care and guide patients through diagnosis, treatment and follow-up on the way to three stars.",
@@ -36,18 +36,18 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-12T08:18:19.959Z",
-  "sourceCommit": "399b17cdb37db68d9d195f56ceeebde5848c67fb",
-  "bytesReceived": 6669512,
-  "archiveSha256": "245b0f7509b8ec265d1bf757b6358de96d72a7d987e09eb33e32393148100e11",
+  "publishedAt": "2026-11-13T08:41:33.633Z",
+  "sourceCommit": "300181bdad953bd270016b79f59731405e7b3620",
+  "bytesReceived": 6669542,
+  "archiveSha256": "48f806b165928354bf22095429e89f2ca9c9156b95b3529a9565f6939da0a5f4",
   "result": {
     "clientPublished": true,
     "serverImageLoaded": false,
     "imageDigest": null,
-    "bytesReceived": 6669512,
+    "bytesReceived": 6669542,
     "mode": "replace",
     "filesRemoved": 0,
-    "engineVersion": "1.38.0",
+    "engineVersion": "1.39.0",
     "deployWarning": null
   },
   "validation": {
@@ -60,13 +60,13 @@
     "live": "Published source modules, file index and manifest match local bytes. Public desktop and phone load in the real browser runtime without console errors or warnings."
   },
   "version": "2.2.0",
-  "indexSha256": "a8242c603b4844949c4e63f4a072e14c002443711aefdb72344a61e85b8ae991",
+  "indexSha256": "08917169a6bd17e803d2111c5ed03354392f634314e22b9be0463673f4a3a60c",
   "liveVerification": {
-    "at": "2026-11-12T08:18:19.959Z",
+    "at": "2026-11-13T08:41:33.633Z",
     "files": [
       {
         "file": "starhermit-files.json",
-        "sha256": "a8242c603b4844949c4e63f4a072e14c002443711aefdb72344a61e85b8ae991",
+        "sha256": "08917169a6bd17e803d2111c5ed03354392f634314e22b9be0463673f4a3a60c",
         "status": 200
       },
       {
@@ -116,12 +116,12 @@
       },
       {
         "file": "index.html",
-        "sha256": "5adb62cc896d896fa7face8dce760c7775a295245118008572d1a3fc1658b7a4",
+        "sha256": "33fe0597b4cafdd7605be283e58c01ce102186e3044f4415d3170b14b3960b20",
         "status": 200
       },
       {
         "file": "starhermit.txt",
-        "sha256": "aabe6f04dd001651a962f0a9013c96bb2beff093aa516c03be88b0d37364926d",
+        "sha256": "631db983bfc3bff753155ef617eefd48ec7bba6697000ab2fd9ef381895fd9c9",
         "status": 200
       }
     ]
