@@ -4,7 +4,7 @@
 
 Build, furnish and manage a hospital from an empty floor. A single-player hospital construction game inspired by the room-building and patient-flow design of classic hospital management games, with original art, fictional ailments and a gently cynical board of directors.
 
-Play: https://825eaedf-a936-4e1e-a4d3-74f8ef652d61.starhermit.com/index.html
+Play: https://dashboard.starhermit.com/play/825eaedf-a936-4e1e-a4d3-74f8ef652d61
 
 ## Your first hospital
 
