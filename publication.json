@@ -22,9 +22,9 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-13T08:41:30.739343+00:00",
+      "deployedAt": "2026-11-18T17:53:17.521363+00:00",
       "externalLaunchUrl": null,
-      "engineVersion": "1.39.0",
+      "engineVersion": "1.44.1",
       "deployWarning": null
     },
     "description": "Build and run your own hospital. Expand and furnish departments, manage supplies and staff, research better care and guide patients through diagnosis, treatment and follow-up on the way to three stars.",
@@ -36,18 +36,18 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-13T08:41:33.633Z",
-  "sourceCommit": "300181bdad953bd270016b79f59731405e7b3620",
-  "bytesReceived": 6669542,
-  "archiveSha256": "48f806b165928354bf22095429e89f2ca9c9156b95b3529a9565f6939da0a5f4",
+  "publishedAt": "2026-11-18T17:53:17.522Z",
+  "sourceCommit": "7a94f81abe093816306ee7bfbd0d05e296702c0f",
+  "bytesReceived": 9871874,
+  "archiveSha256": "cee6e24b7a9daa571e7b25e6572eeb91fc56879905a961fe3928f66aeec65ce9",
   "result": {
     "clientPublished": true,
     "serverImageLoaded": false,
     "imageDigest": null,
-    "bytesReceived": 6669542,
+    "bytesReceived": 9871874,
     "mode": "replace",
     "filesRemoved": 0,
-    "engineVersion": "1.39.0",
+    "engineVersion": "1.44.1",
     "deployWarning": null
   },
   "validation": {
